@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f7f5f2;
+  --surface: #ffffff;
+  --subtle: #efebe6;
+  --line: #e4ded6;
+  --fg: #1f1b2e;
+  --muted: #6f6a78;
+  --accent: #6a4cff;
+  --on-accent: #ffffff;
+  --danger: #c62f3b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141220;
+    --surface: #1f1b2e;
+    --subtle: #2a2540;
+    --line: #322c4a;
+    --fg: #f2effa;
+    --muted: #a59fb8;
+    --accent: #f5c26b;
+    --on-accent: #1f1b2e;
+    --danger: #ff6b76;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-subtle: var(--subtle);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.input {
+  @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-base outline-none focus:border-accent focus:ring-2 focus:ring-accent/30;
+}

@@ -1,0 +1,78 @@
+# Render Blueprint — Infrastructure as Code per DressIt.
+# Render legge questo file dal repo GitHub e crea/aggiorna DB, API e frontend.
+# Docs: https://render.com/docs/blueprint-spec
+
+databases:
+  - name: dressit-db
+    databaseName: dressit
+    user: dressit
+    plan: free            # Attenzione: il Postgres free scade dopo 30 giorni. In produzione usa basic-256mb o superiore.
+    region: frankfurt
+    postgresMajorVersion: "16"
+    ipAllowList: []       # Solo connessioni interne alla rete Render
+
+services:
+  # ---------------------------------------------------------------- API
+  - type: web
+    name: dressit-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: apps/api
+    buildCommand: npm ci --include=dev && npm run build
+    # Applica le migration SQL e poi avvia il server (funziona anche sul piano free,
+    # dove preDeployCommand non è disponibile).
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - apps/api/**
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dressit-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false        # Render la chiede alla creazione del Blueprint
+      - key: ANTHROPIC_MODEL
+        value: claude-opus-5-5
+      - key: CLOUDINARY_URL
+        sync: false        # Consigliata: senza, le foto finiscono sul disco effimero di Render
+      - key: CORS_ORIGIN
+        fromService:
+          type: web
+          name: dressit-web
+          property: host
+
+  # ---------------------------------------------------------------- Frontend
+  - type: web
+    name: dressit-web
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: apps/web
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - apps/web/**
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      # Host dell'API (es. dressit-api.onrender.com): il client aggiunge https://.
+      # È una variabile NEXT_PUBLIC_*: viene inserita nel bundle durante la build.
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: dressit-api
+          property: host

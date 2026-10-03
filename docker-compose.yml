@@ -1,0 +1,14 @@
+# Sviluppo locale: solo PostgreSQL. API e web girano con `npm run dev`.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: dressit
+      POSTGRES_PASSWORD: dressit
+      POSTGRES_DB: dressit
+    ports:
+      - "5432:5432"
+    volumes:
+      - dressit-db:/var/lib/postgresql/data
+volumes:
+  dressit-db:
