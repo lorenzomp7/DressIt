@@ -38,6 +38,7 @@ Fotografa i tuoi vestiti, l'AI li cataloga e ogni mattina ti propone l'outfit gi
 
 ```
 DressIt/
+├── .github/workflows/ci.yml     # CI: typecheck + build di api e web su ogni PR
 ├── render.yaml                  # Infrastructure as Code (DB + API + web)
 ├── docker-compose.yml           # Postgres per lo sviluppo locale
 ├── apps/
