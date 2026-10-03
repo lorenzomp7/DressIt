@@ -9,8 +9,10 @@ const EnvSchema = z.object({
     .default("false")
     .transform((v) => v === "true"),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
-  ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY is required"),
-  ANTHROPIC_MODEL: z.string().default("claude-opus-5-5"),
+  GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
+  GEMINI_MODEL: z.string().default("gemini-3.8-flash"),
+  /** Optional override of the Gemini endpoint (e.g. a corporate proxy or a local mock). */
+  GEMINI_BASE_URL: z.string().optional(),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
   CLOUDINARY_URL: z.string().optional(),
   PUBLIC_API_URL: z.string().optional(),

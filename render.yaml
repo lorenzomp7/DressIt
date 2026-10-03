@@ -39,10 +39,10 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
-      - key: ANTHROPIC_API_KEY
+      - key: GEMINI_API_KEY
         sync: false        # Render la chiede alla creazione del Blueprint
-      - key: ANTHROPIC_MODEL
-        value: claude-opus-5-5
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
       - key: CLOUDINARY_URL
         sync: false        # Consigliata: senza, le foto finiscono sul disco effimero di Render
       - key: CORS_ORIGIN
