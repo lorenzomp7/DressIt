@@ -18,6 +18,8 @@ const EnvSchema = z.object({
   PUBLIC_API_URL: z.string().optional(),
   RENDER_EXTERNAL_URL: z.string().optional(),
   UPLOAD_DIR: z.string().default("uploads"),
+  /** Comma-separated emails that get the admin role (no admin password lives in the code). */
+  ADMIN_EMAILS: z.string().default(""),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
@@ -48,4 +50,9 @@ export const config = {
     env.PUBLIC_API_URL || env.RENDER_EXTERNAL_URL || `http://localhost:${env.PORT}`,
   ),
   useCloudinary: Boolean(env.CLOUDINARY_URL),
+  adminEmails: new Set(
+    env.ADMIN_EMAILS.split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  ),
 };

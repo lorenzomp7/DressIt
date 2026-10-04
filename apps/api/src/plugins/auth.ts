@@ -13,7 +13,13 @@ declare module "@fastify/jwt" {
 declare module "fastify" {
   interface FastifyInstance {
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
+    requireAdmin: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
+}
+
+/** Admins are configured via ADMIN_EMAILS and checked on every request, so revoking takes effect at once. */
+export function isAdmin(email: string): boolean {
+  return config.adminEmails.has(email.toLowerCase());
 }
 
 export default fp(async function authPlugin(app: FastifyInstance) {
@@ -27,6 +33,14 @@ export default fp(async function authPlugin(app: FastifyInstance) {
       await request.jwtVerify();
     } catch {
       await reply.code(401).send({ error: "Sessione scaduta, effettua di nuovo l'accesso." });
+    }
+  });
+
+  app.decorate("requireAdmin", async (request: FastifyRequest, reply: FastifyReply) => {
+    await app.authenticate(request, reply);
+    if (reply.sent) return;
+    if (!isAdmin(request.user.email)) {
+      await reply.code(403).send({ error: "Accesso riservato agli amministratori." });
     }
   });
 });

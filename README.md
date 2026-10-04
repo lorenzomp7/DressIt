@@ -87,6 +87,8 @@ DressIt/
 | `GET` | `/weather?lat&lon` | meteo attuale |
 | `POST` | `/outfits/suggest` | `{ message, history, location?, timezone }` → `{ reply, outfits[], weather }` |
 | `GET` | `/health` | health check usato da Render |
+| `GET` | `/admin/stats` · `/admin/users` · `/admin/items` | **solo admin**: statistiche, utenti, ultimi capi analizzati |
+| `DELETE` | `/admin/users/:id` | **solo admin**: elimina un account con tutti i suoi capi e immagini |
 
 ## Sviluppo locale
 
@@ -117,6 +119,17 @@ Per provare la fotocamera da telefono in locale serve HTTPS (es. `npx next dev -
 4. Clicca **Apply**. Render crea il database, poi l'API (che applica le migration all'avvio) e infine il frontend.
 5. Apri `https://dressit-web.onrender.com` dal telefono → menu del browser → **Aggiungi a schermata Home**.
 
+### Accesso admin
+
+1. Su Render → `dressit-api` → **Environment** → imposta `ADMIN_EMAILS` con la tua email (più email separate da virgola). Il servizio si riavvia da solo.
+2. Nell'app **registrati** (o accedi) con quella email: in alto a destra nell'armadio compare l'icona 🛡️ che apre `/admin`.
+3. Il pannello mostra:
+   - **Panoramica:** utenti e capi totali/ultimi 7 giorni, chiamate AI con tasso d'errore e latenza media/p95 (analisi foto e stylist separati), capi per categoria, ultimi errori AI.
+   - **Utenti:** elenco con numero di capi e chiamate AI; puoi vederne i capi o eliminare l'account.
+   - **Capi:** gli ultimi capi caricati con foto e tag generati dall'AI, per valutarne la qualità.
+
+Il ruolo è verificato a ogni richiesta dal backend: togliendo un'email da `ADMIN_EMAILS` l'accesso viene revocato subito. Nessuna password admin è scritta nel codice.
+
 ### Variabili d'ambiente
 
 **`dressit-api`**
@@ -126,6 +139,7 @@ Per provare la fotocamera da telefono in locale serve HTTPS (es. `npx next dev -
 | `DATABASE_URL` | automatica (`fromDatabase`) | Internal URL, nessun SSL necessario |
 | `JWT_SECRET` | automatica (`generateValue`) | stringa casuale generata da Render |
 | `GEMINI_API_KEY` | **manuale** | obbligatoria |
+| `ADMIN_EMAILS` | **manuale** | email degli amministratori separate da virgola (es. `tu@gmail.com`) |
 | `CLOUDINARY_URL` | **manuale** | consigliata in produzione |
 | `CORS_ORIGIN` | automatica (host di `dressit-web`) | se aggiungi un dominio custom, mettilo qui (lista separata da virgole, es. `https://dressit.app,https://dressit-web.onrender.com`) |
 | `GEMINI_MODEL` | `gemini-3.8-flash` | modificabile |

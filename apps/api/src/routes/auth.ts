@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { isAdmin } from "../plugins/auth.js";
 import { createUser, findUserByEmail, findUserById } from "../repositories/users.js";
 
 const CredentialsSchema = z.object({
@@ -10,7 +11,7 @@ const CredentialsSchema = z.object({
 });
 
 function publicUser(u: { id: string; email: string; display_name: string | null }) {
-  return { id: u.id, email: u.email, displayName: u.display_name };
+  return { id: u.id, email: u.email, displayName: u.display_name, isAdmin: isAdmin(u.email) };
 }
 
 export default async function authRoutes(app: FastifyInstance) {

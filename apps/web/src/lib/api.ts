@@ -1,4 +1,4 @@
-import type { Item, OutfitSuggestion, User, Weather } from "./types";
+import type { AdminItem, AdminStats, AdminUser, Item, OutfitSuggestion, User, Weather } from "./types";
 
 // Inlined at build time. Render passes just the host (fromService.property: host).
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -100,4 +100,14 @@ export const api = {
     location?: { lat: number; lon: number };
     timezone: string;
   }) => request<OutfitSuggestion>("/outfits/suggest", { method: "POST", body: json(body) }),
+
+  admin: {
+    stats: () => request<AdminStats>("/admin/stats"),
+    users: () => request<{ users: AdminUser[] }>("/admin/users").then((r) => r.users),
+    items: (userId?: string) =>
+      request<{ items: AdminItem[] }>(`/admin/items?limit=60${userId ? `&userId=${userId}` : ""}`).then(
+        (r) => r.items,
+      ),
+    deleteUser: (id: string) => request<void>(`/admin/users/${id}`, { method: "DELETE" }),
+  },
 };
