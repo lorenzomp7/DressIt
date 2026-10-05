@@ -24,7 +24,7 @@ Fotografa i tuoi vestiti, l'AI li cataloga e ogni mattina ti propone l'outfit gi
 
 | Livello | Scelta | Motivo |
 |---|---|---|
-| Frontend | **Next.js 16 (App Router) + React 19 + Tailwind CSS 4** | PWA installabile (manifest + service worker), `<input capture>` per la fotocamera nativa, tema chiaro/scuro |
+| Frontend | **Next.js 16 (App Router, export statico) + React 19 + Tailwind CSS 4**, servito come Render Static Site | PWA installabile (manifest + service worker), `<input capture>` per la fotocamera nativa, tema chiaro/scuro |
 | Backend | **Node 22 + Fastify 5 + TypeScript** | veloce, multipart nativo, rate limiting e JWT come plugin ufficiali |
 | AI | **Google Gemini (`gemini-3.8-flash`) via `@google/genai`** | un solo modello multimodale per vision e ragionamento, veloce ed economico; **output JSON vincolato** da schema (`responseJsonSchema`) e rivalidato con Zod |
 | Database | **PostgreSQL 16 su Render** + `pg` + migration SQL | gestito nativamente da Render; array nativi (`TEXT[]`) per colori/tag/stagioni |
@@ -39,6 +39,7 @@ Fotografa i tuoi vestiti, l'AI li cataloga e ogni mattina ti propone l'outfit gi
 ```
 DressIt/
 ├── .github/workflows/ci.yml     # CI: typecheck + build di api e web su ogni PR
+├── .github/workflows/keep-alive.yml # ping all'API ogni 10 min per evitare lo sleep del piano free
 ├── render.yaml                  # Infrastructure as Code (DB + API + web)
 ├── docker-compose.yml           # Postgres per lo sviluppo locale
 ├── apps/
@@ -130,6 +131,12 @@ Per provare la fotocamera da telefono in locale serve HTTPS (es. `npx next dev -
 
 Il ruolo è verificato a ogni richiesta dal backend: togliendo un'email da `ADMIN_EMAILS` l'accesso viene revocato subito. Nessuna password admin è scritta nel codice.
 
+### Migrazione del frontend a Static Site (deploy già esistenti)
+
+Se avevi già creato il Blueprint quando `dressit-web` era un servizio Node, Render non può convertirlo da solo:
+1. Su Render apri `dressit-web` → **Settings** → **Delete Web Service**.
+2. Apri il Blueprint → **Manual Sync**: Render ricrea `dressit-web` come Static Site con lo stesso nome. Di solito l'indirizzo resta `dressit-web.onrender.com`; se Render aggiunge un suffisso, `CORS_ORIGIN` si aggiorna da solo.
+
 ### Variabili d'ambiente
 
 **`dressit-api`**
@@ -153,10 +160,14 @@ Il ruolo è verificato a ogni richiesta dal backend: togliendo un'email da `ADMI
 | Variabile | Come viene impostata | Note |
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | automatica (host di `dressit-api`) | letta **in fase di build**: se la cambi, fai *Manual Deploy → Clear build cache & deploy* |
-| `NODE_ENV`, `NODE_VERSION` | `production`, `22` | |
+| `NODE_VERSION` | `22` | |
 
 ### Note per la produzione
 
-- **Piano free:** i web service vanno in sleep dopo 15 minuti di inattività (primo caricamento lento, circa 30-60 s) e il Postgres free scade dopo 30 giorni. Per uso reale passa almeno a `starter` (servizi) e `basic-256mb` (DB) in `render.yaml`.
+- **Sempre online sul piano free:**
+  - `dressit-web` è uno **Static Site**: HTML/JS serviti dalla CDN di Render, gratis e mai in sleep.
+  - `dressit-api` è un web service free, che Render addormenta dopo 15 minuti senza traffico. Il workflow `.github/workflows/keep-alive.yml` chiama `/health` ogni 10 minuti per tenerlo sveglio (un servizio acceso 24/7 sono circa 744 ore, dentro le 750 ore gratuite al mese). I workflow pianificati girano solo dal **branch di default** del repo (imposta `main` in *Settings → General*) e GitHub li disattiva dopo 60 giorni senza attività sul repo; inoltre può ritardarli di qualche minuto: per più affidabilità aggiungi anche un monitor gratuito esterno, per esempio [UptimeRobot](https://uptimerobot.com) o [cron-job.org](https://cron-job.org), su `https://dressit-api.onrender.com/health` ogni 5-10 minuti.
+  - Se l'API dorme comunque, il frontend ritenta le richieste per circa un minuto mentre si riavvia, invece di mostrare subito un errore.
+  - **Limite del piano free:** il Postgres gratuito scade dopo 30 giorni. Per un uso reale passa a `basic-256mb` (DB) e `starter` (API) in `render.yaml`.
 - **Sicurezza:** password con bcrypt (cost 12), JWT a 30 giorni, rate limit globale e più stretto su login e AI, metadati EXIF/GPS rimossi dalle foto, ID restituiti dall'AI verificati contro il DB, ENV validate all'avvio.
 - **Costi AI:** il tagging usa `thinkingLevel: LOW` su immagini da 1024px; lo stylist usa `thinkingLevel: MEDIUM` e mette istruzioni + guardaroba (che cambiano di rado) all'inizio del prompt, così la cache implicita di Gemini li riutilizza.

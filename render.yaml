@@ -16,6 +16,8 @@ services:
   - type: web
     name: dressit-api
     runtime: node
+    # Free: va in sleep dopo 15 min senza traffico. Il workflow
+    # .github/workflows/keep-alive.yml lo tiene sveglio con un ping ogni 10 minuti.
     plan: free
     region: frankfurt
     rootDir: apps/api
@@ -54,23 +56,38 @@ services:
           property: host
 
   # ---------------------------------------------------------------- Frontend
+  # Static Site: Next.js esportato in HTML/JS statici e servito dalla CDN di Render.
+  # È gratuito, non va mai in sleep e non consuma ore del piano free.
   - type: web
     name: dressit-web
-    runtime: node
-    plan: free
-    region: frankfurt
+    runtime: static
     rootDir: apps/web
-    buildCommand: npm ci --include=dev && npm run build
-    startCommand: npm start
+    buildCommand: npm ci && npm run build
+    staticPublishPath: out
     autoDeployTrigger: commit
+    pullRequestPreviewsEnabled: false
     buildFilter:
       paths:
         - apps/web/**
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(self), geolocation=(self)
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /_next/static/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: NODE_ENV
-        value: production
       # Host dell'API (es. dressit-api.onrender.com): il client aggiunge https://.
       # È una variabile NEXT_PUBLIC_*: viene inserita nel bundle durante la build.
       - key: NEXT_PUBLIC_API_URL

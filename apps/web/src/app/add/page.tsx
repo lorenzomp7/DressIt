@@ -128,7 +128,7 @@ export default function AddPage() {
                   </p>
                 )}
                 {u.status === "done" && u.item && (
-                  <Link href={`/items/${u.item.id}`} className="block">
+                  <Link href={`/item?id=${u.item.id}`} className="block">
                     <p className="flex items-center gap-1.5 font-medium">
                       <CheckCircle2 className="size-4 shrink-0 text-accent" aria-hidden />
                       <span className="truncate">{u.item.name}</span>

@@ -1,0 +1,27 @@
+name: Keep API awake
+
+# Render's free plan puts a web service to sleep after 15 minutes without traffic.
+# Pinging /health every 10 minutes keeps dressit-api warm (one service running
+# 24/7 is ~744 h/month, within the 750 free instance hours).
+# GitHub may delay scheduled runs by a few minutes under load; for a tighter
+# guarantee also add a free external monitor (see README).
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping /health
+        env:
+          # Override with a repository variable if the API lives elsewhere.
+          API_URL: ${{ vars.API_URL || 'https://dressit-api.onrender.com' }}
+        run: |
+          curl --fail --silent --show-error --max-time 90 --retry 2 --retry-delay 10 \
+            "$API_URL/health"

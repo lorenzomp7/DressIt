@@ -1,25 +1,12 @@
 import type { NextConfig } from "next";
 
+// Exported as a fully static site (served by Render's CDN, never sleeps).
+// Security headers live in render.yaml, since a static export cannot set them.
 const nextConfig: NextConfig = {
+  output: "export",
+  trailingSlash: true,
   reactStrictMode: true,
-  poweredByHeader: false,
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          { key: "Permissions-Policy", value: "camera=(self), geolocation=(self)" },
-        ],
-      },
-      {
-        // The service worker must never be served stale.
-        source: "/sw.js",
-        headers: [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }],
-      },
-    ];
-  },
+  images: { unoptimized: true },
 };
 
 export default nextConfig;
