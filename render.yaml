@@ -65,7 +65,6 @@ services:
     buildCommand: npm ci && npm run build
     staticPublishPath: out
     autoDeployTrigger: commit
-    pullRequestPreviewsEnabled: false
     buildFilter:
       paths:
         - apps/web/**
