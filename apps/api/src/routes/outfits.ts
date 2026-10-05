@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
+import { trackAi } from "../repositories/aiEvents.js";
 import { listItems } from "../repositories/items.js";
 import { AiError, suggestOutfits } from "../services/ai.js";
 import { getWeather } from "../services/weather.js";
@@ -50,7 +51,9 @@ export default async function outfitRoutes(app: FastifyInstance) {
       const weather = location ? await getWeather(location.lat, location.lon) : null;
 
       try {
-        const result = await suggestOutfits({ message, history, wardrobe, weather, timezone });
+        const result = await trackAi(request.user.sub, "outfit", () =>
+          suggestOutfits({ message, history, wardrobe, weather, timezone }),
+        );
 
         // Never trust IDs coming back from the model: keep only items the user owns.
         const byId = new Map(wardrobe.map((i) => [i.id, i]));

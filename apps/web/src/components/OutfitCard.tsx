@@ -24,7 +24,7 @@ export function OutfitCard({ outfit }: { outfit: Outfit }) {
       <h3 className="mb-2 font-semibold">{outfit.title}</h3>
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {outfit.items.map((item) => (
-          <Link key={item.id} href={`/items/${item.id}`} className="w-24 shrink-0">
+          <Link key={item.id} href={`/item?id=${item.id}`} className="w-24 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={item.imageUrl}

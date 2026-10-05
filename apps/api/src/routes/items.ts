@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { ItemUpdateSchema } from "../domain.js";
+import { trackAi } from "../repositories/aiEvents.js";
 import * as items from "../repositories/items.js";
 import { AiError, tagGarment } from "../services/ai.js";
 import { normalizeImage } from "../services/image.js";
@@ -46,7 +47,7 @@ export default async function itemRoutes(app: FastifyInstance) {
 
       const userId = request.user.sub;
       const [tagging, stored] = await Promise.allSettled([
-        tagGarment(image.buffer, image.mediaType),
+        trackAi(userId, "tag", () => tagGarment(image.buffer, image.mediaType)),
         storage.save(userId, image.buffer),
       ]);
 

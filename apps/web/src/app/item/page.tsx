@@ -2,8 +2,8 @@
 
 import { ArrowLeft, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { Spinner } from "@/components/AuthProvider";
 import { api, ApiError } from "@/lib/api";
 import {
@@ -22,8 +22,17 @@ const splitList = (v: string) =>
     .map((s) => s.trim())
     .filter(Boolean);
 
+// Static export: the item id travels in the query string (/item?id=...) instead of a dynamic segment.
 export default function ItemPage() {
-  const { id } = useParams<{ id: string }>();
+  return (
+    <Suspense>
+      <ItemEditor />
+    </Suspense>
+  );
+}
+
+function ItemEditor() {
+  const id = useSearchParams().get("id") ?? "";
   const router = useRouter();
   const [item, setItem] = useState<Item | null>(null);
   const [draft, setDraft] = useState<Item | null>(null);
@@ -32,6 +41,10 @@ export default function ItemPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
+    if (!id) {
+      setError("Capo non trovato");
+      return;
+    }
     api
       .getItem(id)
       .then((i) => {

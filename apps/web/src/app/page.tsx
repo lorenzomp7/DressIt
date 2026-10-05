@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, LogOut, Sparkles } from "lucide-react";
+import { Camera, LogOut, ShieldCheck, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Spinner, useAuth } from "@/components/AuthProvider";
@@ -34,9 +34,16 @@ export default function WardrobePage() {
           <p className="text-sm text-muted">Ciao{user?.displayName ? ` ${user.displayName}` : ""} 👋</p>
           <h1 className="text-2xl font-bold tracking-tight">Il tuo armadio</h1>
         </div>
-        <button type="button" onClick={signOut} aria-label="Esci" className="rounded-full p-2 text-muted">
-          <LogOut className="size-5" />
-        </button>
+        <div className="flex items-center gap-1">
+          {user?.isAdmin && (
+            <Link href="/admin" aria-label="Pannello admin" className="rounded-full p-2 text-accent">
+              <ShieldCheck className="size-5" />
+            </Link>
+          )}
+          <button type="button" onClick={signOut} aria-label="Esci" className="rounded-full p-2 text-muted">
+            <LogOut className="size-5" />
+          </button>
+        </div>
       </header>
 
       <Link

@@ -1,4 +1,4 @@
-import type { Item, OutfitSuggestion, User, Weather } from "./types";
+import type { AdminItem, AdminStats, AdminUser, Item, OutfitSuggestion, User, Weather } from "./types";
 
 // Inlined at build time. Render passes just the host (fromService.property: host).
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -42,18 +42,42 @@ export function setUnauthorizedHandler(fn: (() => void) | null) {
   onUnauthorized = fn;
 }
 
+/**
+ * On Render's free plan the API sleeps after 15 idle minutes and takes up to ~1 minute to
+ * wake. While it boots, Render answers with a placeholder that has no CORS headers, so the
+ * browser reports a network error: retry with backoff instead of failing on the first try.
+ */
+const WAKE_UP_DELAYS_MS = [2_000, 4_000, 8_000, 15_000, 15_000, 15_000, 15_000];
+
+async function fetchWithWakeUp(url: string, init: RequestInit): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch {
+      const delay = WAKE_UP_DELAYS_MS[attempt];
+      if (delay === undefined || (typeof navigator !== "undefined" && !navigator.onLine)) {
+        throw new ApiError(
+          "Impossibile contattare il server. Se l'app era inattiva può impiegare fino a un minuto ad avviarsi: riprova.",
+          0,
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+}
+
+/** Fire-and-forget ping so the API starts booting as soon as the app opens. */
+export function wakeUpApi(): void {
+  fetch(`${API_URL}/health`, { cache: "no-store" }).catch(() => undefined);
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
   const token = tokenStore.get();
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
 
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}${path}`, { ...init, headers });
-  } catch {
-    throw new ApiError("Impossibile contattare il server. Controlla la connessione.", 0);
-  }
+  const res = await fetchWithWakeUp(`${API_URL}${path}`, { ...init, headers });
 
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
@@ -100,4 +124,14 @@ export const api = {
     location?: { lat: number; lon: number };
     timezone: string;
   }) => request<OutfitSuggestion>("/outfits/suggest", { method: "POST", body: json(body) }),
+
+  admin: {
+    stats: () => request<AdminStats>("/admin/stats"),
+    users: () => request<{ users: AdminUser[] }>("/admin/users").then((r) => r.users),
+    items: (userId?: string) =>
+      request<{ items: AdminItem[] }>(`/admin/items?limit=60${userId ? `&userId=${userId}` : ""}`).then(
+        (r) => r.items,
+      ),
+    deleteUser: (id: string) => request<void>(`/admin/users/${id}`, { method: "DELETE" }),
+  },
 };

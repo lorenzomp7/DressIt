@@ -4,7 +4,7 @@ import type { Item } from "@/lib/types";
 export function ItemCard({ item }: { item: Item }) {
   return (
     <Link
-      href={`/items/${item.id}`}
+      href={`/item?id=${item.id}`}
       className="group overflow-hidden rounded-2xl bg-surface shadow-sm ring-1 ring-line transition active:scale-[0.98]"
     >
       <div className="aspect-[3/4] overflow-hidden bg-subtle">
