@@ -7,7 +7,7 @@ export interface NormalizedImage {
 
 /**
  * Auto-rotates (EXIF), strips metadata (GPS from phone cameras) and downsizes to a
- * size that is plenty for both display and Claude vision while keeping tokens low.
+ * size that is plenty for both display and Gemini vision while keeping tokens low.
  */
 export async function normalizeImage(input: Buffer): Promise<NormalizedImage> {
   const buffer = await sharp(input, { failOn: "error" })

@@ -24,6 +24,7 @@ export interface User {
   id: string;
   email: string;
   displayName: string | null;
+  isAdmin: boolean;
 }
 
 export interface Weather {
@@ -73,3 +74,40 @@ export const FORMALITY_LABELS: Record<Formality, string> = {
   business: "Business",
   formal: "Elegante",
 };
+
+export interface AdminStats {
+  users: { total: number; last7d: number };
+  items: { total: number; last7d: number; byCategory: Record<string, number> };
+  ai: {
+    kind: "tag" | "outfit";
+    calls7d: number;
+    errors7d: number;
+    avgLatencyMs: number | null;
+    p95LatencyMs: number | null;
+  }[];
+  recentErrors: { kind: string; statusCode: number | null; error: string | null; createdAt: string }[];
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  displayName: string | null;
+  createdAt: string;
+  itemCount: number;
+  lastItemAt: string | null;
+  aiCalls: number;
+}
+
+export interface AdminItem {
+  id: string;
+  ownerEmail: string;
+  imageUrl: string;
+  name: string;
+  category: Category;
+  colors: string[];
+  material: string;
+  formality: Formality;
+  warmth: number;
+  tags: string[];
+  createdAt: string;
+}

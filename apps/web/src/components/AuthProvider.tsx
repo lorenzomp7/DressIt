@@ -1,8 +1,9 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { api, setUnauthorizedHandler, tokenStore } from "@/lib/api";
+import { api, setUnauthorizedHandler, tokenStore, wakeUpApi } from "@/lib/api";
+import { useCleanPathname } from "@/lib/path";
 import type { User } from "@/lib/types";
 
 interface AuthState {
@@ -19,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
+  const pathname = useCleanPathname();
 
   const signOut = useCallback(() => {
     tokenStore.set(null);
@@ -42,6 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [signOut]);
 
   useEffect(() => {
+    // Free hosting puts the API to sleep: start waking it while the user reads or types.
+    wakeUpApi();
     if (!tokenStore.get()) {
       setLoading(false);
       return;

@@ -1,5 +1,11 @@
-import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import {
+  ApiError,
+  FinishReason,
+  GoogleGenAI,
+  ThinkingLevel,
+  type Content,
+  type GenerateContentConfig,
+} from "@google/genai";
 import { z } from "zod";
 import { config } from "../config.js";
 import {
@@ -13,16 +19,10 @@ import {
 } from "../domain.js";
 import type { WeatherSummary } from "./weather.js";
 
-const client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY, maxRetries: 2 });
-
-/**
- * If a safety classifier declines a request, the API transparently re-runs it on
- * Anthropic's recommended fallback model instead of returning a refusal.
- */
-const FALLBACK: Pick<Anthropic.Beta.MessageCreateParamsNonStreaming, "betas" | "fallbacks"> = {
-  betas: ["server-side-fallback-2026-07-01"],
-  fallbacks: "default",
-};
+const ai = new GoogleGenAI({
+  apiKey: config.GEMINI_API_KEY,
+  httpOptions: config.GEMINI_BASE_URL ? { baseUrl: config.GEMINI_BASE_URL } : undefined,
+});
 
 export class AiError extends Error {
   constructor(
@@ -33,30 +33,76 @@ export class AiError extends Error {
   }
 }
 
-/** Maps SDK errors to HTTP status codes the routes can return as-is. */
+/** Maps Gemini SDK errors to HTTP status codes the routes can return as-is. */
 function toAiError(err: unknown): AiError {
   if (err instanceof AiError) return err;
-  if (err instanceof Anthropic.RateLimitError) {
-    return new AiError("L'assistente è molto richiesto, riprova tra qualche secondo.", 429);
-  }
-  if (err instanceof Anthropic.AuthenticationError) {
-    return new AiError("Configurazione AI non valida (ANTHROPIC_API_KEY).", 500);
-  }
-  if (err instanceof Anthropic.BadRequestError) {
-    return new AiError("Richiesta non valida per il modello AI.", 400);
-  }
-  if (err instanceof Anthropic.APIError) {
+  if (err instanceof ApiError) {
+    if (err.status === 429) {
+      return new AiError("L'assistente è molto richiesto, riprova tra qualche secondo.", 429);
+    }
+    if (err.status === 401 || err.status === 403) {
+      return new AiError("Configurazione AI non valida (GEMINI_API_KEY).", 500);
+    }
+    if (err.status === 400) return new AiError("Richiesta non valida per il modello AI.", 400);
     return new AiError("Servizio AI temporaneamente non disponibile.", 503);
   }
   return new AiError("Errore imprevisto durante l'analisi AI.", 500);
 }
 
-function assertUsable(stopReason: string | null): void {
-  if (stopReason === "refusal") {
-    throw new AiError("L'AI non ha potuto elaborare questa richiesta.", 422);
+/** Keywords Zod emits that Gemini's responseJsonSchema does not support. */
+const UNSUPPORTED_KEYWORDS = new Set(["$schema", "default"]);
+
+function stripUnsupported(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(stripUnsupported);
+  if (node && typeof node === "object") {
+    return Object.fromEntries(
+      Object.entries(node)
+        .filter(([key]) => !UNSUPPORTED_KEYWORDS.has(key))
+        .map(([key, value]) => [key, stripUnsupported(value)]),
+    );
   }
-  if (stopReason === "max_tokens") {
-    throw new AiError("Risposta AI incompleta, riprova.", 502);
+  return node;
+}
+
+/** JSON Schema that Gemini enforces on the response (the Zod schema validates it again). */
+function jsonSchema(schema: z.ZodType): unknown {
+  return stripUnsupported(z.toJSONSchema(schema, { io: "input" }));
+}
+
+/** Runs a structured-output request and validates the JSON against the Zod schema. */
+async function generateJson<T extends z.ZodType>(
+  schema: T,
+  contents: Content[],
+  cfg: Omit<GenerateContentConfig, "responseMimeType" | "responseJsonSchema">,
+): Promise<z.infer<T>> {
+  try {
+    const response = await ai.models.generateContent({
+      model: config.GEMINI_MODEL,
+      contents,
+      config: {
+        ...cfg,
+        responseMimeType: "application/json",
+        responseJsonSchema: jsonSchema(schema),
+      },
+    });
+
+    if (response.promptFeedback?.blockReason) {
+      throw new AiError("L'AI non ha potuto elaborare questa richiesta.", 422);
+    }
+    const finish = response.candidates?.[0]?.finishReason;
+    if (finish === FinishReason.MAX_TOKENS) {
+      throw new AiError("Risposta AI incompleta, riprova.", 502);
+    }
+    if (finish && finish !== FinishReason.STOP) {
+      throw new AiError("L'AI non ha potuto elaborare questa richiesta.", 422);
+    }
+
+    const parsed = schema.safeParse(JSON.parse(response.text ?? ""));
+    if (!parsed.success) throw new AiError("Risposta AI non valida, riprova.", 502);
+    return parsed.data;
+  } catch (err) {
+    if (err instanceof SyntaxError) throw new AiError("Risposta AI non valida, riprova.", 502);
+    throw toAiError(err);
   }
 }
 
@@ -65,14 +111,14 @@ function assertUsable(stopReason: string | null): void {
 // ---------------------------------------------------------------------------
 
 /**
- * Same shape as GarmentAttributesSchema, but tolerant: the SDK passes enums to the model as
- * hints, so an out-of-vocabulary value falls back to a sensible default instead of failing.
+ * Same shape as GarmentAttributesSchema, but tolerant: an out-of-vocabulary value
+ * falls back to a sensible default instead of failing the whole upload.
  */
 const AiGarmentSchema = GarmentAttributesSchema.extend({
   category: z.enum(CATEGORIES).catch("top"),
   seasons: z.array(z.enum(SEASONS)).catch([...SEASONS]),
   formality: z.enum(FORMALITY).catch("casual"),
-  warmth: z.number().describe("Da 1 (molto leggero) a 5 (molto caldo)").catch(3),
+  warmth: z.number().catch(3).describe("Da 1 (molto leggero) a 5 (molto caldo)"),
 });
 
 const TaggingSchema = z.object({
@@ -97,40 +143,31 @@ Linee guida:
   in rejection_reason e compila garment con valori segnaposto.`;
 
 export async function tagGarment(image: Buffer, mediaType: "image/jpeg"): Promise<GarmentAttributes> {
-  try {
-    const response = await client.beta.messages.parse({
-      ...FALLBACK,
-      model: config.ANTHROPIC_MODEL,
-      max_tokens: 8000,
-      output_config: { effort: "low", format: betaZodOutputFormat(TaggingSchema) },
-      system: TAGGING_SYSTEM,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: { type: "base64", media_type: mediaType, data: image.toString("base64") },
-            },
-            { type: "text", text: "Analizza questo capo e restituisci i suoi attributi." },
-          ],
-        },
-      ],
-    });
+  const result = await generateJson(
+    TaggingSchema,
+    [
+      {
+        role: "user",
+        parts: [
+          { inlineData: { mimeType: mediaType, data: image.toString("base64") } },
+          { text: "Analizza questo capo e restituisci i suoi attributi." },
+        ],
+      },
+    ],
+    {
+      systemInstruction: TAGGING_SYSTEM,
+      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+      maxOutputTokens: 8192,
+    },
+  );
 
-    assertUsable(response.stop_reason);
-    const result = response.parsed_output;
-    if (!result) throw new AiError("Risposta AI non valida, riprova.", 502);
-    if (!result.is_clothing) {
-      throw new AiError(
-        result.rejection_reason || "Nella foto non sembra esserci un capo d'abbigliamento.",
-        422,
-      );
-    }
-    return { ...result.garment, warmth: clampWarmth(result.garment.warmth) };
-  } catch (err) {
-    throw toAiError(err);
+  if (!result.is_clothing) {
+    throw new AiError(
+      result.rejection_reason || "Nella foto non sembra esserci un capo d'abbigliamento.",
+      422,
+    );
   }
+  return { ...result.garment, warmth: clampWarmth(result.garment.warmth) };
 }
 
 // ---------------------------------------------------------------------------
@@ -230,39 +267,26 @@ function describeContext(weather: WeatherSummary | null, timezone: string): stri
 }
 
 export async function suggestOutfits(req: OutfitRequest): Promise<OutfitResponse> {
-  // Stable prefix first (instructions + wardrobe) so it can be served from prompt cache;
+  // Stable prefix first (instructions + wardrobe) so Gemini's implicit caching can reuse it;
   // the volatile context (date, weather) goes into the latest user turn.
-  const system: Anthropic.Beta.BetaTextBlockParam[] = [
-    { type: "text", text: STYLIST_SYSTEM },
-    {
-      type: "text",
-      text: `Guardaroba dell'utente (${req.wardrobe.length} capi):\n${serializeWardrobe(req.wardrobe)}`,
-      cache_control: { type: "ephemeral" },
-    },
-  ];
+  const systemInstruction = `${STYLIST_SYSTEM}\n\nGuardaroba dell'utente (${req.wardrobe.length} capi):\n${serializeWardrobe(req.wardrobe)}`;
 
-  const messages: Anthropic.Beta.BetaMessageParam[] = [
-    ...req.history.map((t) => ({ role: t.role, content: t.content })),
+  const contents: Content[] = [
+    ...req.history.map((t) => ({
+      role: t.role === "assistant" ? "model" : "user",
+      parts: [{ text: t.content }],
+    })),
     {
       role: "user",
-      content: `<contesto>\n${describeContext(req.weather, req.timezone)}\n</contesto>\n\n${req.message}`,
+      parts: [
+        { text: `<contesto>\n${describeContext(req.weather, req.timezone)}\n</contesto>\n\n${req.message}` },
+      ],
     },
   ];
 
-  try {
-    const response = await client.beta.messages.parse({
-      ...FALLBACK,
-      model: config.ANTHROPIC_MODEL,
-      max_tokens: 16000,
-      output_config: { effort: "medium", format: betaZodOutputFormat(OutfitResponseSchema) },
-      system,
-      messages,
-    });
-
-    assertUsable(response.stop_reason);
-    if (!response.parsed_output) throw new AiError("Risposta AI non valida, riprova.", 502);
-    return response.parsed_output;
-  } catch (err) {
-    throw toAiError(err);
-  }
+  return generateJson(OutfitResponseSchema, contents, {
+    systemInstruction,
+    thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM },
+    maxOutputTokens: 16384,
+  });
 }

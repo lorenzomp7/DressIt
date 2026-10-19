@@ -2,7 +2,7 @@
 
 import { Camera, Shirt, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useCleanPathname } from "@/lib/path";
 
 const LINKS = [
   { href: "/", label: "Armadio", icon: Shirt },
@@ -11,14 +11,14 @@ const LINKS = [
 ];
 
 export function BottomNav() {
-  const pathname = usePathname();
+  const pathname = useCleanPathname();
   if (pathname === "/login") return null;
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur">
       <ul className="mx-auto grid max-w-xl grid-cols-3">
         {LINKS.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" || pathname.startsWith("/items") : pathname.startsWith(href);
+          const active = href === "/" ? pathname === "/" || pathname.startsWith("/item") : pathname.startsWith(href);
           return (
             <li key={href}>
               <Link

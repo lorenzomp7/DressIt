@@ -6,6 +6,7 @@ import Fastify from "fastify";
 import { mkdirSync } from "node:fs";
 import { config } from "./config.js";
 import authPlugin from "./plugins/auth.js";
+import adminRoutes from "./routes/admin.js";
 import authRoutes from "./routes/auth.js";
 import healthRoutes from "./routes/health.js";
 import itemRoutes from "./routes/items.js";
@@ -54,6 +55,7 @@ export async function buildApp() {
   await app.register(authRoutes);
   await app.register(itemRoutes);
   await app.register(outfitRoutes);
+  await app.register(adminRoutes);
 
   return app;
 }
