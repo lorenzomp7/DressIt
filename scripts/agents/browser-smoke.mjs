@@ -53,5 +53,5 @@ export async function run({ page, url }) {
   await page.waitForURL(/\/login\/?$/);
   assert.equal(await page.evaluate(() => localStorage.getItem('dressit.token')), null);
   assert.deepEqual(errors, []);
-  console.log('DRESSIT_BROWSER_OK: route guard, registration toggle, login, reload, wardrobe, upload UI, AI error, mobile/desktop layout, logout. API mocked.');
+  return 'DRESSIT_BROWSER_OK: route guard, registration toggle, login, reload, wardrobe, upload UI, AI error, mobile/desktop layout, logout. API mocked.';
 }

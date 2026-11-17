@@ -29,7 +29,7 @@ async def browser():
                 print(text(await client.call_tool('session_new', {'browser': 'headless', 'tabGroup': 'dressit'})))
                 try:
                     text(await client.call_tool('execute', {'code': 'state.page = await context.newPage();', 'timeout': 20000}))
-                    code = f'const qa = await import("./scripts/agents/browser-smoke.mjs"); await qa.run({{page: state.page, url: {json.dumps(url)}}});'
+                    code = f'const qa = await import("./scripts/agents/browser-smoke.mjs"); console.log(await qa.run({{page: state.page, url: {json.dumps(url)}}}));'
                     result = text(await client.call_tool('execute', {'code': code, 'timeout': 60000}))
                     assert 'DRESSIT_BROWSER_OK' in result, result
                     print(result)
