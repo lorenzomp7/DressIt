@@ -258,3 +258,24 @@ Questi risultati riguardano il commit indicato. Non verificano le chiamate reali
 Gemini, l'autenticazione Google, la qualità dei suggerimenti AI, le migrazioni su
 un database di produzione o il deploy Render. Le esecuzioni precedenti fallite
 degli strumenti sono state seguite dalle esecuzioni riuscite riportate sopra.
+
+## Risultati CI — 17 novembre 2026
+
+Verifiche della [PR #3](https://github.com/lorenzomp7/DressIt/pull/3), head
+`08df07c35827b8078a3c6d08307728086dd1bcb4` e merge
+`d733cbf24c76013bffa0335c229cfc0350e72c06`: tutte terminate con esito positivo;
+nessun fallimento nelle esecuzioni controllate.
+
+| Ambito | Risultato effettivo |
+|---|---|
+| Typecheck e build | API e web superati: [CI PR](https://github.com/lorenzomp7/DressIt/actions/runs/44152217746), [CI merge](https://github.com/lorenzomp7/DressIt/actions/runs/44152288645). |
+| Browser con fixture | Job Runtime · browser superato con risposte API simulate; non verifica il deploy o servizi esterni reali. |
+| Runtime container | Job Runtime · container superato senza credenziali del modello. |
+| Protocollo MCP | Inizializzazione superata senza chiamate API. |
+| AI reale | Non testata: nessuna attestazione sul funzionamento delle credenziali Google, sul tagging o sui suggerimenti Gemini reali. |
+
+Esecuzioni Agent tools: [head push](https://github.com/lorenzomp7/DressIt/actions/runs/44152038770),
+[PR](https://github.com/lorenzomp7/DressIt/actions/runs/44152217838),
+[merge](https://github.com/lorenzomp7/DressIt/actions/runs/44152288525).
+Gli step di preparazione browser/container saltati nella matrice sono condizionali:
+non costituiscono prove eseguite.
