@@ -1,0 +1,6 @@
+[submodule "tools/agent-skills"]
+	path = tools/agent-skills
+	url = https://github.com/addyosmani/agent-skills.git
+[submodule "tools/vibetest-use"]
+	path = tools/vibetest-use
+	url = https://github.com/browser-use/vibetest-use.git

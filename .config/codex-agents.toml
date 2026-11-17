@@ -1,0 +1,13 @@
+# Merge into your Codex configuration; start Codex from the repository root.
+[mcp_servers.playwriter]
+command = "npm"
+args = ["run", "--silent", "agent:browser"]
+
+[mcp_servers.vibetest]
+command = "bash"
+args = ["scripts/agents/vibetest.sh"]
+env_vars = ["GOOGLE_API_KEY", "VIBETEST_MODEL"]
+
+[mcp_servers.container-use]
+command = "container-use"
+args = ["stdio"]

@@ -171,3 +171,11 @@ Se avevi già creato il Blueprint quando `dressit-web` era un servizio Node, Ren
   - **Limite del piano free:** il Postgres gratuito scade dopo 30 giorni. Per un uso reale passa a `basic-256mb` (DB) e `starter` (API) in `render.yaml`.
 - **Sicurezza:** password con bcrypt (cost 12), JWT a 30 giorni, rate limit globale e più stretto su login e AI, metadati EXIF/GPS rimossi dalle foto, ID restituiti dall'AI verificati contro il DB, ENV validate all'avvio.
 - **Costi AI:** il tagging usa `thinkingLevel: LOW` su immagini da 1024px; lo stylist usa `thinkingLevel: MEDIUM` e mette istruzioni + guardaroba (che cambiano di rado) all'inizio del prompt, così la cache implicita di Gemini li riutilizza.
+
+## Strumenti per lo sviluppo con agenti
+
+Il branch `main_chatgpt` integra agent-skills, Playwriter, Vibetest, configurazione
+MCP per container-use e Gemini CLI. Sono strumenti di sviluppo, separati dalle
+dipendenze dell'app. Istruzioni e prerequisiti in
+[development-tools.md](docs/agents/development-tools.md), scenari DressIt in
+[qa.md](docs/agents/qa.md).

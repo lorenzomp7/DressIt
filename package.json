@@ -1,0 +1,31 @@
+{
+  "name": "dressit",
+  "version": "1.0.0",
+  "description": "Fotografa i tuoi vestiti, l'AI li cataloga e ogni mattina ti propone l'outfit giusto in base a meteo, occasione e stile.",
+  "scripts": {
+    "check": "npm run typecheck --prefix apps/api && npm run build --prefix apps/api && npm run typecheck --prefix apps/web && npm run build --prefix apps/web",
+    "agent:browser": "playwriter",
+    "agent:browser:cli": "playwriter",
+    "agent:gemini": "gemini",
+    "agent:vibetest:setup": "bash scripts/agents/setup-vibetest.sh",
+    "agent:vibetest": "bash scripts/agents/vibetest.sh",
+    "agent:doctor": "node scripts/agents/doctor.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lorenzomp7/DressIt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/lorenzomp7/DressIt/issues"
+  },
+  "homepage": "https://github.com/lorenzomp7/DressIt#readme",
+  "devDependencies": {
+    "@google/gemini-cli": "0.68.0",
+    "playwriter": "0.12.0"
+  },
+  "private": true
+}

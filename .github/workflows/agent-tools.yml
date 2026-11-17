@@ -1,0 +1,26 @@
+name: Agent tools
+on:
+  pull_request:
+  push:
+    branches: [main, main_chatgpt]
+permissions:
+  contents: read
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: uv venv .tools/venv
+      - run: uv pip sync --python .tools/venv/bin/python tools/vibetest-requirements.txt
+      - name: Check MCP initialization without API calls
+        run: .tools/venv/bin/python scripts/agents/check-mcp.py

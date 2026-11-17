@@ -9,3 +9,6 @@ next-env.d.ts
 uploads/
 .DS_Store
 npm-debug.log*
+.tools/
+__pycache__/
+*.egg-info/
