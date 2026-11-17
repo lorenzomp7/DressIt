@@ -12,3 +12,4 @@ npm-debug.log*
 .tools/
 __pycache__/
 *.egg-info/
+.env.agents

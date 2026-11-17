@@ -27,3 +27,11 @@ Call MCP `start` with the local URL, `num_agents: 1`, `headless: true`; then cal
 This is exploratory QA, not a replacement for deterministic regression tests.
 The upstream start API has no custom scenario/credential parameter: authenticated journeys above must be exercised with Playwriter or explicit regression tests.
 Agent/model calls can incur costs. Reports are local under `.tools/reports/`.
+
+## Automated runtime smoke test
+
+`npm run agent:test:browser` runs Playwriter against the static frontend in an
+isolated headless browser and then starts/stops Vibetest's browser engine.
+It creates its own local static server and uses synthetic API fixtures, without
+creating accounts or calling Gemini. GitHub Actions runs this on a capable host;
+passing it does not prove real API, AI recognition, camera capture, or PWA installation.

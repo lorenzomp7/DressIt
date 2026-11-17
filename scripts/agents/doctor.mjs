@@ -18,7 +18,7 @@ check('Gemini CLI npm package', existsSync('node_modules/@google/gemini-cli/pack
 check('Vibetest Python imports', available('.tools/venv/bin/python', ['-c', 'import vibetest.agents; import vibetest.mcp_server']));
 check('Vibetest GOOGLE_API_KEY (value hidden)', Boolean(process.env.GOOGLE_API_KEY));
 check('Vibetest VIBETEST_MODEL', Boolean(process.env.VIBETEST_MODEL));
-check('container-use binary', available('container-use'));
+check('container-use binary', available('.tools/bin/container-use'));
 check('Docker daemon', available('docker', ['info']));
 console.log('Chrome extension connection, model access and Gemini CLI login require separate runtime checks.');
 process.exitCode = missing ? 1 : 0;

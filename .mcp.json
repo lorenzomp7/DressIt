@@ -2,6 +2,6 @@
   "mcpServers": {
     "playwriter": { "command": "npm", "args": ["run", "--silent", "agent:browser"] },
     "vibetest": { "command": "bash", "args": ["scripts/agents/vibetest.sh"] },
-    "container-use": { "command": "container-use", "args": ["stdio"] }
+    "container-use": { "command": "bash", "args": ["scripts/agents/container-use.sh", "stdio"] }
   }
 }

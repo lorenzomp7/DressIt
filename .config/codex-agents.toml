@@ -9,5 +9,5 @@ args = ["scripts/agents/vibetest.sh"]
 env_vars = ["GOOGLE_API_KEY", "VIBETEST_MODEL"]
 
 [mcp_servers.container-use]
-command = "container-use"
-args = ["stdio"]
+command = "bash"
+args = ["scripts/agents/container-use.sh", "stdio"]

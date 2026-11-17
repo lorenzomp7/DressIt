@@ -24,3 +24,42 @@ jobs:
       - run: uv pip sync --python .tools/venv/bin/python tools/vibetest-requirements.txt
       - name: Check MCP initialization without API calls
         run: .tools/venv/bin/python scripts/agents/check-mcp.py
+  runtime:
+    name: Runtime · ${{ matrix.runtime }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime: [browser, container]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: uv venv .tools/venv
+      - run: uv pip sync --python .tools/venv/bin/python tools/vibetest-requirements.txt
+      - name: Prepare browser runtimes and frontend
+        if: matrix.runtime == 'browser'
+        run: |
+          node node_modules/playwriter/bin.js browser install
+          .tools/venv/bin/python -m playwright install --with-deps chromium
+          npm ci --prefix apps/web
+          npm run build --prefix apps/web
+      - name: Prepare container runtime
+        if: matrix.runtime == 'container'
+        run: |
+          docker info
+          npm run agent:container:setup
+          git config user.name 'DressIt runtime QA'
+          git config user.email 'qa@example.invalid'
+      - name: Exercise real runtime without model credentials
+        run: .tools/venv/bin/python scripts/agents/check-runtime.py ${{ matrix.runtime }}

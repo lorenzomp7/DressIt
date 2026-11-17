@@ -6,10 +6,14 @@
     "check": "npm run typecheck --prefix apps/api && npm run build --prefix apps/api && npm run typecheck --prefix apps/web && npm run build --prefix apps/web",
     "agent:browser": "playwriter",
     "agent:browser:cli": "playwriter",
-    "agent:gemini": "gemini",
+    "agent:gemini": "node --env-file-if-exists=.env.agents node_modules/@google/gemini-cli/bundle/gemini.js",
     "agent:vibetest:setup": "bash scripts/agents/setup-vibetest.sh",
     "agent:vibetest": "bash scripts/agents/vibetest.sh",
-    "agent:doctor": "node scripts/agents/doctor.mjs"
+    "agent:doctor": "node scripts/agents/doctor.mjs",
+    "agent:container:setup": "bash scripts/agents/setup-container-use.sh",
+    "agent:container": "bash scripts/agents/container-use.sh stdio",
+    "agent:test:browser": ".tools/venv/bin/python scripts/agents/check-runtime.py browser",
+    "agent:test:container": ".tools/venv/bin/python scripts/agents/check-runtime.py container"
   },
   "repository": {
     "type": "git",
