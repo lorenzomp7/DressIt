@@ -50,7 +50,7 @@ export function OutfitCard({ outfit }: { outfit: Outfit }) {
       >
         {state === "done" ? (
           <>
-            <Check className="size-4" aria-hidden /> Buona giornata!
+            <Check className="size-4" aria-hidden /> Salvato nella memoria di oggi
           </>
         ) : state === "error" ? (
           "Riprova"

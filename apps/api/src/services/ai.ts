@@ -17,6 +17,7 @@ import {
   type GarmentAttributes,
   type Item,
 } from "../domain.js";
+import type { WearDay } from "../repositories/wearHistory.js";
 import type { WeatherSummary } from "./weather.js";
 
 const ai = new GoogleGenAI({
@@ -202,6 +203,7 @@ export interface OutfitRequest {
   wardrobe: Item[];
   weather: WeatherSummary | null;
   timezone: string;
+  wearHistory: WearDay[];
 }
 
 const STYLIST_SYSTEM = `Sei DressIt, lo stylist personale dell'utente. Il tuo compito è proporre outfit
@@ -214,7 +216,13 @@ Regole:
 - Adatta il calore dei capi (warmth 1-5) a temperatura percepita e precipitazioni.
 - Rispetta l'occasione (ufficio → smart_casual/business, palestra → sport, cena elegante → formal).
 - Cura l'armonia dei colori e dei pattern; evita più fantasie in conflitto.
-- Se possibile preferisci capi non indossati di recente (last_worn) per variare.
+- Usa la memoria degli utilizzi confermati (date e ID) e last_worn per variare: privilegia
+  capi mai usati o usati meno spesso, evita quelli di ieri e degli ultimi 3 giorni se ci sono
+  alternative adatte, ed evita di riproporre le stesse combinazioni recenti.
+- La memoria raggruppa i capi per giorno, non necessariamente in un unico outfit.
+- Meteo, occasione e richieste esplicite hanno priorità: con pochi capi puoi ripeterli,
+  spiegando brevemente il motivo. Non considerare indossati gli outfit soltanto suggeriti.
+- Una memoria vuota non dimostra che i capi non siano mai stati indossati.
 - Se il guardaroba non basta per un outfit completo, proponi il migliore possibile, spiegalo nella
   reply e indica in missing_piece cosa servirebbe.
 - Se l'utente fa una domanda che non richiede outfit (es. "grazie"), rispondi e lascia outfits vuoto.
@@ -279,7 +287,7 @@ export async function suggestOutfits(req: OutfitRequest): Promise<OutfitResponse
     {
       role: "user",
       parts: [
-        { text: `<contesto>\n${describeContext(req.weather, req.timezone)}\n</contesto>\n\n${req.message}` },
+        { text: `<contesto>\n${describeContext(req.weather, req.timezone)}\nMemoria degli ultimi 30 giorni registrati (utilizzi confermati):\n${JSON.stringify(req.wearHistory)}\n</contesto>\n\n${req.message}` },
       ],
     },
   ];

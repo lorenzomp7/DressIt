@@ -83,9 +83,16 @@ export default async function itemRoutes(app: FastifyInstance) {
 
   /** Mark the items of a chosen outfit as worn today (feeds variety in suggestions). */
   app.post("/items/wear", async (request, reply) => {
-    const body = z.object({ itemIds: z.array(z.uuid()).min(1).max(20) }).safeParse(request.body);
+    const body = z.object({
+      itemIds: z.array(z.uuid()).min(1).max(20),
+      timezone: z.string().max(64).refine((value) => {
+        try { new Intl.DateTimeFormat("it-IT", { timeZone: value }); return true; }
+        catch { return false; }
+      }).default("Europe/Rome"),
+    }).safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: "Dati non validi" });
-    const updated = await items.markWorn(request.user.sub, body.data.itemIds);
+    const updated = await items.markWorn(request.user.sub, body.data.itemIds, body.data.timezone);
+    if (updated === null) return reply.code(404).send({ error: "Uno o più capi non trovati" });
     return { updated };
   });
 }
