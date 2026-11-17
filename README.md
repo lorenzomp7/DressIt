@@ -229,6 +229,8 @@ o nei workflow GitHub Actions configurati. La presenza nel repository non li
 abilita automaticamente in ChatGPT o Claude Code: il client deve caricare la
 configurazione e l'host deve avere i prerequisiti.
 
+Dalla radice, esegui `npm run check` per i controlli del progetto e `npm run agent:test:browser` dopo la build del frontend per la verifica locale del browser.
+
 | Strumento | Utilizzo |
 |---|---|
 | agent-skills | Procedure per sviluppo e revisione |
