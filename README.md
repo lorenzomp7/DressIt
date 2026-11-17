@@ -50,8 +50,6 @@ Open-Meteo.
 | API Fastify | Autenticazione, guardaroba, suggerimenti | PostgreSQL, Gemini, Cloudinary, Open-Meteo |
 | PostgreSQL | Account, capi, utilizzi e monitoraggio AI | Accesso dal backend |
 
-
-
 **Flusso "aggiungi capo":** foto dal browser (ridimensionata lato client) → `POST /items` → `sharp` ruota (EXIF), toglie i metadati GPS e ridimensiona a 1024px → **in parallelo** Gemini estrae dalla foto gli attributi in JSON strutturato e l'immagine va su Cloudinary → riga salvata in Postgres.
 
 **Flusso "cosa mi metto?":** la chat invia messaggio, storico e posizione (facoltativa) → l'API carica il guardaroba, legge il meteo da Open-Meteo e chiede a Gemini uno o più outfit in JSON strutturato → l'API **scarta ogni ID che non appartiene all'utente** e restituisce capi completi di immagine.
@@ -220,7 +218,7 @@ Se avevi già creato il Blueprint quando `dressit-web` era un servizio Node, Ren
 
 ## Strumenti per lo sviluppo con agenti
 
-Il branch `main_chatgpt` integra agent-skills, Playwriter, Vibetest, configurazione
+Il repository integra agent-skills, Playwriter, Vibetest, configurazione
 MCP per container-use e Gemini CLI. Sono strumenti di sviluppo, separati dalle
 dipendenze dell'app. Istruzioni e prerequisiti in
 [development-tools.md](docs/agents/development-tools.md), scenari DressIt in
@@ -241,3 +239,22 @@ configurazione e l'host deve avere i prerequisiti.
 
 Le verifiche browser in CI usano risposte API simulate; non attestano il
 funzionamento del deploy, delle credenziali Google o delle chiamate AI reali.
+
+## Stato delle verifiche
+
+Verifiche concluse il **17 novembre 2026** sul commit di merge
+[`d733cbf`](https://github.com/lorenzomp7/DressIt/commit/d733cbf24c76013bffa0335c229cfc0350e72c06)
+della [PR #3](https://github.com/lorenzomp7/DressIt/pull/3), integrata in `main`.
+
+| Verifica | Risultato | Esecuzione |
+|---|---|---|
+| API: typecheck e build | Superata | [CI](https://github.com/lorenzomp7/DressIt/actions/runs/44152288645) |
+| Web: typecheck e build | Superata | [CI](https://github.com/lorenzomp7/DressIt/actions/runs/44152288645) |
+| Inizializzazione protocollo MCP | Superata, senza chiamate API ai modelli | [Agent tools](https://github.com/lorenzomp7/DressIt/actions/runs/44152288525) |
+| Runtime browser | Superata: frontend con risposte API simulate e ciclo di avvio/chiusura browser Vibetest | [Agent tools](https://github.com/lorenzomp7/DressIt/actions/runs/44152288525) |
+| Runtime container-use | Superata: ambiente isolato e comando eseguito nel container | [Agent tools](https://github.com/lorenzomp7/DressIt/actions/runs/44152288525) |
+
+Questi risultati riguardano il commit indicato. Non verificano le chiamate reali a
+Gemini, l'autenticazione Google, la qualità dei suggerimenti AI, le migrazioni su
+un database di produzione o il deploy Render. Le esecuzioni precedenti fallite
+degli strumenti sono state seguite dalle esecuzioni riuscite riportate sopra.
