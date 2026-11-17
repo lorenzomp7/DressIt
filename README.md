@@ -1,26 +1,62 @@
 # DressIt 👗✨
 
-Fotografa i tuoi vestiti, l'AI li cataloga e ogni mattina ti propone l'outfit giusto in base a meteo, occasione e stile.
+Fotografa i tuoi vestiti, l'AI li cataloga e ti suggerisce outfit in base a meteo, occasione, stile e capi indossati nei giorni precedenti.
+
+## Funzionalità
+
+- **Guardaroba digitale:** foto da fotocamera o galleria, catalogazione AI, filtri e modifica manuale dei capi.
+- **Stylist in chat:** fino a tre proposte con immagini e spiegazioni, usando i capi del tuo account.
+- **Meteo facoltativo:** la posizione permette di adattare i consigli alle condizioni locali.
+- **Memoria degli utilizzi:** conferma «Indosso questo oggi» per aiutare lo stylist a variare capi e combinazioni.
+- **PWA per smartphone:** utilizzabile dal browser e aggiungibile alla schermata Home su Android e iPhone.
+- **Pannello amministratore:** statistiche, utenti, capi e monitoraggio delle chiamate AI.
+
+## Primi passi
+
+1. Apri l'indirizzo del frontend fornito dal tuo deploy e crea un account.
+2. Aggiungi le foto dei tuoi capi e controlla i tag riconosciuti dall'AI.
+3. Apri la chat e descrivi l'occasione, ad esempio «Un outfit casual per l'ufficio».
+4. Consenti la posizione se vuoi consigli basati sul meteo.
+5. Quando scegli una proposta, premi **Indosso questo oggi** per registrarla.
+
+Su iPhone, apri il sito in Safari e usa **Condividi → Aggiungi alla schermata Home**.
+Su Android, usa l'opzione di installazione o aggiunta alla schermata Home del browser.
+Le funzioni di account, guardaroba e AI richiedono la connessione Internet.
+
+## Memoria dei capi indossati
+
+Con «Indosso questo oggi» DressIt registra i capi e il giorno nel database del tuo account,
+anche tra sessioni e dispositivi diversi. Lo stylist riceve gli ultimi 30 giorni registrati
+e l’ultimo utilizzo di ogni capo: preferisce alternative ai capi degli ultimi 3 giorni
+e varia le combinazioni, rispettando meteo, occasione e richieste esplicite.
+I suggerimenti non confermati non entrano nella memoria. Conferme ripetute nello stesso
+giorno non duplicano gli utilizzi; il giorno segue il fuso orario del dispositivo.
+La migrazione conserva l’ultimo utilizzo già noto; non ricostruisce lo storico precedente.
+La preferenza per la varietà è applicata dal modello AI, non è un divieto assoluto.
+
+## Dati e servizi esterni
+
+Account e guardaroba sono salvati sul server in PostgreSQL. Le immagini vengono
+inviate all'API e a Gemini per l'analisi; con Cloudinary configurato vengono conservate
+su quel servizio. Lo stylist riceve guardaroba, richiesta, conversazione recente e
+storico degli utilizzi. Se autorizzi la posizione, l'API la usa per interrogare
+Open-Meteo.
 
 ## Architettura
 
-```
- Smartphone (PWA)                     Render (region Frankfurt)
-┌──────────────────┐   HTTPS   ┌───────────────────────┐    ┌──────────────────────┐
-│ dressit-web      │──────────▶│ dressit-api           │───▶│ dressit-db           │
-│ Next.js 16 (PWA) │  JSON/JWT │ Node 22 + Fastify 5   │ SQL│ PostgreSQL 16        │
-│ fotocamera, chat │           │ auth, upload, AI      │    └──────────────────────┘
-└──────────────────┘           │                       │───▶ Gemini API (vision + outfit)
-                               │                       │───▶ Cloudinary (immagini)
-                               │                       │───▶ Open-Meteo (meteo, gratis)
-                               └───────────────────────┘
-```
+| Componente | Ruolo | Collegamenti |
+|---|---|---|
+| PWA Next.js | Interfaccia, foto, chat | API via HTTPS e JWT |
+| API Fastify | Autenticazione, guardaroba, suggerimenti | PostgreSQL, Gemini, Cloudinary, Open-Meteo |
+| PostgreSQL | Account, capi, utilizzi e monitoraggio AI | Accesso dal backend |
+
+
 
 **Flusso "aggiungi capo":** foto dal browser (ridimensionata lato client) → `POST /items` → `sharp` ruota (EXIF), toglie i metadati GPS e ridimensiona a 1024px → **in parallelo** Gemini estrae dalla foto gli attributi in JSON strutturato e l'immagine va su Cloudinary → riga salvata in Postgres.
 
 **Flusso "cosa mi metto?":** la chat invia messaggio, storico e posizione (facoltativa) → l'API carica il guardaroba, legge il meteo da Open-Meteo e chiede a Gemini uno o più outfit in JSON strutturato → l'API **scarta ogni ID che non appartiene all'utente** e restituisce capi completi di immagine.
 
-## Stack consigliato e perché
+## Stack del progetto
 
 | Livello | Scelta | Motivo |
 |---|---|---|
@@ -67,7 +103,7 @@ DressIt/
 │           ├── app/
 │           │   ├── page.tsx           # armadio (griglia + filtri)
 │           │   ├── add/page.tsx       # fotocamera/galleria + coda di analisi AI
-│           │   ├── items/[id]/page.tsx# dettaglio e modifica capo
+│           │   ├── item/page.tsx      # dettaglio e modifica capo
 │           │   ├── assistant/page.tsx # chat stylist
 │           │   ├── login/page.tsx
 │           │   └── manifest.ts        # web app manifest
@@ -84,7 +120,7 @@ DressIt/
 | `GET` | `/items` · `/items/:id` | guardaroba |
 | `POST` | `/items` | multipart `image` → tagging AI + salvataggio |
 | `PATCH` · `DELETE` | `/items/:id` | modifica manuale / eliminazione (anche dell'immagine) |
-| `POST` | `/items/wear` | segna un outfit come indossato oggi (varietà nei consigli) |
+| `POST` | `/items/wear` | `{ itemIds, timezone? }` → registra i capi indossati nel giorno locale |
 | `GET` | `/weather?lat&lon` | meteo attuale |
 | `POST` | `/outfits/suggest` | `{ message, history, location?, timezone }` → `{ reply, outfits[], weather }` |
 | `GET` | `/health` | health check usato da Render |
@@ -93,19 +129,29 @@ DressIt/
 
 ## Sviluppo locale
 
+Richiede Node.js 22+, npm e Docker per il database. Esegui i comandi dalla radice del repository.
+
 ```bash
 docker compose up -d                          # Postgres su :5432
 
 cd apps/api
 cp .env.example .env                          # inserisci GEMINI_API_KEY e JWT_SECRET
-npm install
-npm run build && npm run migrate
+npm ci
+npm run build
+node --env-file=.env dist/db/migrate.js
 npm run dev                                   # http://localhost:4000
 
 cd ../web
 cp .env.example .env.local
-npm install
+npm ci
 npm run dev                                   # http://localhost:3000
+```
+
+Per verificare typecheck e build di entrambe le app, dalla radice:
+
+```bash
+npm ci
+npm run check
 ```
 
 Per provare la fotocamera da telefono in locale serve HTTPS (es. `npx next dev --experimental-https` o un tunnel tipo ngrok); in produzione Render fornisce HTTPS automaticamente.
@@ -180,13 +226,18 @@ dipendenze dell'app. Istruzioni e prerequisiti in
 [development-tools.md](docs/agents/development-tools.md), scenari DressIt in
 [qa.md](docs/agents/qa.md).
 
-### Memoria dei capi indossati
+Gli strumenti si eseguono sul computer dello sviluppatore, su un host dell'agente
+o nei workflow GitHub Actions configurati. La presenza nel repository non li
+abilita automaticamente in ChatGPT o Claude Code: il client deve caricare la
+configurazione e l'host deve avere i prerequisiti.
 
-Con «Indosso questo oggi» DressIt registra i capi e il giorno nel database del tuo account,
-anche tra sessioni e dispositivi diversi. Lo stylist riceve gli ultimi 30 giorni registrati
-e l’ultimo utilizzo di ogni capo: preferisce alternative ai capi degli ultimi 3 giorni
-e varia le combinazioni, rispettando meteo, occasione e richieste esplicite.
-I suggerimenti non confermati non entrano nella memoria. Conferme ripetute nello stesso
-giorno non duplicano gli utilizzi; il giorno segue il fuso orario del dispositivo.
-La migrazione conserva l’ultimo utilizzo già noto; non ricostruisce lo storico precedente.
-La preferenza per la varietà è applicata dal modello AI, non è un divieto assoluto.
+| Strumento | Utilizzo |
+|---|---|
+| agent-skills | Procedure per sviluppo e revisione |
+| Playwriter | Controllo e verifiche del browser collegato |
+| Vibetest | Esplorazione e test browser con modello configurato |
+| container-use | Ambienti isolati su un host con Docker |
+| Gemini CLI | Assistente da terminale con autenticazione propria |
+
+Le verifiche browser in CI usano risposte API simulate; non attestano il
+funzionamento del deploy, delle credenziali Google o delle chiamate AI reali.
