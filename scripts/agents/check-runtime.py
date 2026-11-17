@@ -3,6 +3,7 @@ import asyncio
 import functools
 import http.server
 import json
+import os
 from pathlib import Path
 import sys
 import threading
@@ -50,7 +51,13 @@ async def browser():
         server.server_close()
 
 async def container():
-    params = StdioServerParameters(command='.tools/bin/container-use', args=['stdio'])
+    # MCP's default subprocess environment omits GIT_*; preserve CI identity
+    # for the separate repository/worktree that container-use creates.
+    inherited = {key: os.environ[key] for key in (
+        'GIT_AUTHOR_NAME', 'GIT_AUTHOR_EMAIL', 'GIT_COMMITTER_NAME',
+        'GIT_COMMITTER_EMAIL', 'DOCKER_HOST', 'DOCKER_CONTEXT',
+    ) if key in os.environ}
+    params = StdioServerParameters(command='.tools/bin/container-use', args=['stdio'], env=inherited)
     async with stdio_client(params) as (r,w):
         async with ClientSession(r,w) as client:
             await client.initialize()
