@@ -24,7 +24,7 @@ export async function run({ page, url }) {
     return route.fulfill({ status, headers, json: body });
   });
   await page.goto(url);
-  await page.waitForURL('**/login/');
+  await page.waitForURL(/\/login\/?$/);
   await page.getByRole('button', { name: 'Non hai un account? Registrati' }).click();
   await page.getByPlaceholder('Come ti chiami? (opzionale)').waitFor();
   await page.getByRole('button', { name: 'Hai già un account? Accedi' }).click();
@@ -50,7 +50,7 @@ export async function run({ page, url }) {
   }
   await page.goto(url);
   await page.getByRole('button', { name: 'Esci', exact: true }).click();
-  await page.waitForURL('**/login/');
+  await page.waitForURL(/\/login\/?$/);
   assert.equal(await page.evaluate(() => localStorage.getItem('dressit.token')), null);
   assert.deepEqual(errors, []);
   console.log('DRESSIT_BROWSER_OK: route guard, registration toggle, login, reload, wardrobe, upload UI, AI error, mobile/desktop layout, logout. API mocked.');

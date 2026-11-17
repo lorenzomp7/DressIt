@@ -26,7 +26,8 @@ jobs:
         run: .tools/venv/bin/python scripts/agents/check-mcp.py
   runtime:
     name: Runtime · ${{ matrix.runtime }}
-    runs-on: ubuntu-latest
+    # Ubuntu 22.04 supports the downloaded Chrome sandbox without weakening it.
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
