@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { trackAi } from "../repositories/aiEvents.js";
+import { listWearHistory } from "../repositories/wearHistory.js";
 import { listItems } from "../repositories/items.js";
 import { AiError, suggestOutfits } from "../services/ai.js";
 import { getWeather } from "../services/weather.js";
@@ -48,11 +49,12 @@ export default async function outfitRoutes(app: FastifyInstance) {
       let history = body.data.history.slice(-12);
       while (history[0]?.role === "assistant") history = history.slice(1);
 
+      const wearHistory = await listWearHistory(request.user.sub);
       const weather = location ? await getWeather(location.lat, location.lon) : null;
 
       try {
         const result = await trackAi(request.user.sub, "outfit", () =>
-          suggestOutfits({ message, history, wardrobe, weather, timezone }),
+          suggestOutfits({ message, history, wardrobe, weather, timezone, wearHistory }),
         );
 
         // Never trust IDs coming back from the model: keep only items the user owns.

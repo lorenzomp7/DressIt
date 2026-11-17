@@ -136,10 +136,37 @@ export async function deleteItem(userId: string, id: string): Promise<Item | nul
   return rows[0] ? toItem(rows[0]) : null;
 }
 
-export async function markWorn(userId: string, ids: string[]): Promise<number> {
-  const { rowCount } = await pool.query(
-    "UPDATE items SET last_worn_at = now() WHERE user_id = $1 AND id = ANY($2::uuid[])",
-    [userId, ids],
-  );
-  return rowCount ?? 0;
+/** Atomically record all owned garments or reject the entire outfit. */
+export async function markWorn(userId: string, ids: string[], timezone = "Europe/Rome"): Promise<number | null> {
+  const uniqueIds = [...new Set(ids)];
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const owned = await client.query(
+      "SELECT id FROM items WHERE user_id = $1 AND id = ANY($2::uuid[]) ORDER BY id FOR UPDATE",
+      [userId, uniqueIds],
+    );
+    if (owned.rowCount !== uniqueIds.length) {
+      await client.query("ROLLBACK");
+      return null;
+    }
+    await client.query(
+      `INSERT INTO item_wear_history (item_id, worn_on)
+       SELECT id, (now() AT TIME ZONE $3)::date FROM items
+       WHERE user_id = $1 AND id = ANY($2::uuid[])
+       ON CONFLICT (item_id, worn_on) DO NOTHING`,
+      [userId, uniqueIds, timezone],
+    );
+    await client.query(
+      "UPDATE items SET last_worn_at = now() WHERE user_id = $1 AND id = ANY($2::uuid[])",
+      [userId, uniqueIds],
+    );
+    await client.query("COMMIT");
+    return uniqueIds.length;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }

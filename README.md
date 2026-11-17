@@ -179,3 +179,14 @@ MCP per container-use e Gemini CLI. Sono strumenti di sviluppo, separati dalle
 dipendenze dell'app. Istruzioni e prerequisiti in
 [development-tools.md](docs/agents/development-tools.md), scenari DressIt in
 [qa.md](docs/agents/qa.md).
+
+### Memoria dei capi indossati
+
+Con «Indosso questo oggi» DressIt registra i capi e il giorno nel database del tuo account,
+anche tra sessioni e dispositivi diversi. Lo stylist riceve gli ultimi 30 giorni registrati
+e l’ultimo utilizzo di ogni capo: preferisce alternative ai capi degli ultimi 3 giorni
+e varia le combinazioni, rispettando meteo, occasione e richieste esplicite.
+I suggerimenti non confermati non entrano nella memoria. Conferme ripetute nello stesso
+giorno non duplicano gli utilizzi; il giorno segue il fuso orario del dispositivo.
+La migrazione conserva l’ultimo utilizzo già noto; non ricostruisce lo storico precedente.
+La preferenza per la varietà è applicata dal modello AI, non è un divieto assoluto.

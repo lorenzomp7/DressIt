@@ -114,7 +114,7 @@ export const api = {
     request<{ item: Item }>(`/items/${id}`, { method: "PATCH", body: json(patch) }).then((r) => r.item),
   deleteItem: (id: string) => request<void>(`/items/${id}`, { method: "DELETE" }),
   markWorn: (itemIds: string[]) =>
-    request<{ updated: number }>("/items/wear", { method: "POST", body: json({ itemIds }) }),
+    request<{ updated: number }>("/items/wear", { method: "POST", body: json({ itemIds, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }) }),
 
   weather: (lat: number, lon: number) =>
     request<{ weather: Weather }>(`/weather?lat=${lat}&lon=${lon}`).then((r) => r.weather),

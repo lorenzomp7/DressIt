@@ -125,7 +125,8 @@ function Assistant() {
             <p className="font-medium">Ciao! Sono il tuo stylist personale.</p>
             <p className="mt-1 text-sm text-muted">
               Dimmi dove devi andare e ti preparo l&apos;outfit con i capi del tuo armadio, tenendo conto del
-              meteo.
+              meteo e di quello che hai indossato nei giorni precedenti. Conferma «Indosso questo oggi»
+              per aggiornare la memoria.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {SUGGESTIONS.map((s) => (
