@@ -1,4 +1,7 @@
 {
   "workdir": "/workdir",
-  "base_image": "node:22-bookworm"
+  "base_image": "node:22-bookworm",
+  "install_commands": [
+    "rm -f tools/agent-skills/.git tools/vibetest-use/.git"
+  ]
 }

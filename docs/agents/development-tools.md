@@ -98,3 +98,8 @@ GEMINI_API_KEY and VIBETEST_MODEL. Vibetest also accepts GOOGLE_API_KEY from the
 Both launchers load the ignored local file; credentials never go into MCP configuration.
 Gemini CLI can alternatively authenticate interactively with your Google account.
 Automated CI checks do not authenticate Google or spend model credits.
+
+container-use's Dagger export materializes submodule files with `.git` pointers
+that do not resolve in its separate worktree. The environment install command
+removes only those two imported metadata files inside the isolated container.
+The source checkout and its pinned submodule commits are preserved.
