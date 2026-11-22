@@ -15,8 +15,8 @@ const EnvSchema = z.object({
   GEMINI_BASE_URL: z.string().optional(),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
   CLOUDINARY_URL: z.string().optional(),
+  /** Public address of this API (e.g. https://dressit.130-61-10-20.sslip.io), used for local image URLs. */
   PUBLIC_API_URL: z.string().optional(),
-  RENDER_EXTERNAL_URL: z.string().optional(),
   UPLOAD_DIR: z.string().default("uploads"),
   /** Comma-separated emails that get the admin role (no admin password lives in the code). */
   ADMIN_EMAILS: z.string().default(""),
@@ -33,7 +33,7 @@ if (!parsed.success) {
 
 const env = parsed.data;
 
-/** Render exposes hosts without scheme when wired with `fromService.property: host`. */
+/** Accepts a bare host ("dressit.example.com") as well as a full origin: https:// is added when missing. */
 function toOrigin(value: string): string {
   const trimmed = value.trim().replace(/\/$/, "");
   return /^https?:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`;
@@ -47,7 +47,7 @@ export const config = {
     .filter(Boolean)
     .map((o) => (o.startsWith("http://localhost") ? o : toOrigin(o))),
   publicApiUrl: toOrigin(
-    env.PUBLIC_API_URL || env.RENDER_EXTERNAL_URL || `http://localhost:${env.PORT}`,
+    env.PUBLIC_API_URL || `http://localhost:${env.PORT}`,
   ),
   useCloudinary: Boolean(env.CLOUDINARY_URL),
   adminEmails: new Set(

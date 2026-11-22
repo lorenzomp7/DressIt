@@ -1,6 +1,6 @@
 import type { AdminItem, AdminStats, AdminUser, Item, OutfitSuggestion, User, Weather } from "./types";
 
-// Inlined at build time. Render passes just the host (fromService.property: host).
+// Inlined at build time (the GitHub Pages workflow sets it). A bare host gets https:// added.
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 export const API_URL = (/^https?:\/\//.test(RAW_API_URL) ? RAW_API_URL : `https://${RAW_API_URL}`).replace(
   /\/$/,
@@ -43,9 +43,8 @@ export function setUnauthorizedHandler(fn: (() => void) | null) {
 }
 
 /**
- * On Render's free plan the API sleeps after 15 idle minutes and takes up to ~1 minute to
- * wake. While it boots, Render answers with a placeholder that has no CORS headers, so the
- * browser reports a network error: retry with backoff instead of failing on the first try.
+ * The API can be briefly unreachable (a deploy restarting its container, a flaky mobile network).
+ * The browser then reports a network error: retry with backoff instead of failing on the first try.
  */
 const WAKE_UP_DELAYS_MS = [2_000, 4_000, 8_000, 15_000, 15_000, 15_000, 15_000];
 
@@ -57,7 +56,7 @@ async function fetchWithWakeUp(url: string, init: RequestInit): Promise<Response
       const delay = WAKE_UP_DELAYS_MS[attempt];
       if (delay === undefined || (typeof navigator !== "undefined" && !navigator.onLine)) {
         throw new ApiError(
-          "Impossibile contattare il server. Se l'app era inattiva può impiegare fino a un minuto ad avviarsi: riprova.",
+          "Impossibile contattare il server. Controlla la connessione e riprova.",
           0,
         );
       }

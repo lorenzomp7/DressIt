@@ -2,16 +2,19 @@ import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/components/AuthProvider";
 import { BottomNav } from "@/components/BottomNav";
 import { ServiceWorker } from "@/components/ServiceWorker";
+import { withBase } from "@/lib/base-path";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "DressIt — il tuo stylist AI",
   description: "Fotografa i tuoi vestiti e lascia che l'AI ti consigli l'outfit perfetto.",
   applicationName: "DressIt",
+  // GitHub Pages cannot send a Referrer-Policy header: the <meta name="referrer"> tag does the same job.
+  referrer: "strict-origin-when-cross-origin",
   appleWebApp: { capable: true, title: "DressIt", statusBarStyle: "black-translucent" },
   icons: {
-    icon: "/icons/icon-192.png",
-    apple: "/icons/apple-touch-icon.png",
+    icon: withBase("/icons/icon-192.png"),
+    apple: withBase("/icons/apple-touch-icon.png"),
   },
 };
 

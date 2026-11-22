@@ -20,7 +20,7 @@ export async function buildApp() {
       : config.NODE_ENV === "test"
         ? false
         : { level: "debug", transport: undefined },
-    // Render terminates TLS at its proxy; trust X-Forwarded-* for client IPs (rate limiting).
+    // Caddy terminates TLS in front of the API; trust X-Forwarded-* for client IPs (rate limiting).
     trustProxy: true,
     bodyLimit: 1024 * 1024,
   });

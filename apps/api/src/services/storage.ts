@@ -41,8 +41,8 @@ class CloudinaryStorage implements ImageStorage {
 
 /**
  * Stores files on the local disk and serves them from /uploads.
- * NOTE: Render's filesystem is ephemeral — files vanish on every deploy/restart.
- * Fine for local dev and demos; use Cloudinary in production.
+ * On the Oracle VM UPLOAD_DIR is a Docker volume (deploy/compose.yml), so photos survive
+ * restarts and deploys; Cloudinary (CLOUDINARY_URL) remains the option for a CDN and resizing.
  */
 class LocalStorage implements ImageStorage {
   readonly root = path.resolve(config.UPLOAD_DIR);

@@ -24,5 +24,5 @@ Never include API keys, JWTs, photos, or browser sessions in commits or QA repor
 
 When container-use is available, create one environment per concurrent task using its MCP tools.
 Inside it use Node 22 and a separate development database. Install app dependencies there.
-Never share a mutable Postgres database between agents. Do not run Render deployment or change secrets as part of setup.
+Never share a mutable Postgres database between agents. Do not run the deploy workflows (GitHub Pages, Oracle VM) or change secrets as part of setup.
 Review the resulting branch/diff before integrating it into the user's branch.
