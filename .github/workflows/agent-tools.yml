@@ -2,7 +2,7 @@ name: Agent tools
 on:
   pull_request:
   push:
-    branches: [main, main_chatgpt]
+    branches: [main, main_claude]
 concurrency:
   group: agent-tools-${{ github.ref }}
   cancel-in-progress: true

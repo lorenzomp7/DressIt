@@ -84,7 +84,7 @@ are stored in these files. Enable only servers whose host prerequisites are inst
 
 ## Runtime verification
 
-GitHub Actions now exercises both runtimes on pushes to `main_chatgpt`:
+GitHub Actions now exercises both runtimes on pushes to `main_claude`:
 - Playwriter drives Chromium through the real DressIt frontend. API replies are fixtures;
   route guards, session reload, upload controls, AI error display, responsive layout and logout are checked.
 - Vibetest starts and closes its actual Browser Use Chromium session. The adapter fixes

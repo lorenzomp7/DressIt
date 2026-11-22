@@ -1,6 +1,6 @@
 # DressIt
 
-Work on `main_chatgpt` for the integration work requested by the owner.
+Work on `main_claude` for the integration work requested by the owner.
 PWA: `apps/web` (Next.js/React); API: `apps/api` (Fastify/Postgres/Gemini).
 
 ## Development workflow
