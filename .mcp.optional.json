@@ -1,5 +1,13 @@
 {
   "mcpServers": {
+    "playwriter": {
+      "command": "npm",
+      "args": [
+        "run",
+        "--silent",
+        "agent:browser"
+      ]
+    },
     "vibetest": {
       "command": "bash",
       "args": [

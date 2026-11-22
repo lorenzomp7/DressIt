@@ -67,10 +67,10 @@ DressIt's Gemini API calls. Never commit authentication files.
 
 ## MCP clients
 
-`.mcp.json` configures compatible clients when launched from the repository root.
-It loads only Playwriter by default; Vibetest (needs GOOGLE_API_KEY) and
-container-use (needs Docker) are in `.mcp.optional.json`. In Claude Code load them
-for a session with `claude --mcp-config .mcp.optional.json`.
+`.mcp.optional.json` holds Playwriter (needs your Chrome with the extension), Vibetest
+(needs GOOGLE_API_KEY) and container-use (needs Docker). There is no `.mcp.json`:
+Claude Code cloud sessions cannot run these servers. In a local client load them with
+`claude --mcp-config .mcp.optional.json`.
 For Codex, merge `.config/codex-agents.toml` into your client's configuration.
 Pass GOOGLE_API_KEY and VIBETEST_MODEL through the client environment; no secrets
 are stored in these files. Enable only servers whose host prerequisites are installed.
