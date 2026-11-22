@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   check:
-    name: ${{ matrix.app }} · typecheck & build
+    name: ${{ matrix.app }} · typecheck, test & build
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -37,6 +37,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        run: npm test --if-present
 
       - name: Build
         run: npm run build

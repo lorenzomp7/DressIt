@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "vibetest": {
+      "command": "bash",
+      "args": [
+        "scripts/agents/vibetest.sh"
+      ]
+    },
+    "container-use": {
+      "command": "bash",
+      "args": [
+        "scripts/agents/container-use.sh",
+        "stdio"
+      ]
+    }
+  }
+}

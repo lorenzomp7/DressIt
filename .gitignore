@@ -13,3 +13,7 @@ npm-debug.log*
 __pycache__/
 *.egg-info/
 .env.agents
+
+# Claude Code: impostazioni personali e stato degli hook (non versionati)
+.claude/settings.local.json
+.claude/hooks/.state/

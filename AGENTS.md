@@ -14,7 +14,8 @@ Read only the relevant `skills/<name>/SKILL.md` and its references as needed:
 - code-review-and-quality before delivering a change.
 The user's scope and authorization take precedence. Do not preload the whole pack.
 
-Run `npm run check` for API/web typechecks and builds after installing each app's dependencies.
+Run `npm run verify` (API/web typechecks and builds, then the API tests in `apps/api/test/`)
+after installing each app's dependencies. API tests alone: `npm test`. Add a test for every API behavior change.
 For browser checks use the scenarios in `docs/agents/qa.md`. Report actual results and distinguish mock, local, and production tests.
 Never use production wardrobes or real photos for exploratory agent tests. Use disposable test accounts and fixtures.
 Never include API keys, JWTs, photos, or browser sessions in commits or QA reports.

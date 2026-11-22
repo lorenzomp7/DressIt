@@ -1,0 +1,55 @@
+{
+  "watch": [
+    "apps/*",
+    "package.json"
+  ],
+  "steps": [
+    {
+      "name": "API typecheck",
+      "requires": [
+        "apps/api/node_modules"
+      ],
+      "run": [
+        "npm",
+        "run",
+        "--silent",
+        "typecheck",
+        "--prefix",
+        "apps/api"
+      ],
+      "timeout": 180,
+      "setup": "npm ci --prefix apps/api"
+    },
+    {
+      "name": "API test",
+      "requires": [
+        "apps/api/node_modules"
+      ],
+      "run": [
+        "npm",
+        "test",
+        "--silent",
+        "--prefix",
+        "apps/api"
+      ],
+      "timeout": 180,
+      "setup": "npm ci --prefix apps/api"
+    },
+    {
+      "name": "Web typecheck",
+      "requires": [
+        "apps/web/node_modules"
+      ],
+      "run": [
+        "npm",
+        "run",
+        "--silent",
+        "typecheck",
+        "--prefix",
+        "apps/web"
+      ],
+      "timeout": 180,
+      "setup": "npm ci --prefix apps/web"
+    }
+  ]
+}

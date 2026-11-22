@@ -17,7 +17,9 @@ export async function buildApp() {
   const app = Fastify({
     logger: config.isProduction
       ? { level: "info" }
-      : { level: "debug", transport: undefined },
+      : config.NODE_ENV === "test"
+        ? false
+        : { level: "debug", transport: undefined },
     // Render terminates TLS at its proxy; trust X-Forwarded-* for client IPs (rate limiting).
     trustProxy: true,
     bodyLimit: 1024 * 1024,
