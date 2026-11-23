@@ -44,6 +44,10 @@ jobs:
           ADMIN_EMAILS: ${{ vars.ADMIN_EMAILS }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           CORS_ORIGIN: ${{ vars.CORS_ORIGIN || 'https://lorenzomp7.github.io' }}
+          BACKUP_FERNET_KEY: ${{ secrets.BACKUP_FERNET_KEY }}
+          RCLONE_DRIVE_TOKEN: ${{ secrets.RCLONE_DRIVE_TOKEN }}
+          BACKUP_HOUR: ${{ vars.BACKUP_HOUR }}
+          BACKUP_RETENTION_DAYS: ${{ vars.BACKUP_RETENTION_DAYS }}
         run: |
           [ -n "$API_HOST" ] || API_HOST="$APP.${VM_HOST//./-}.sslip.io"
           umask 077
@@ -57,6 +61,17 @@ jobs:
           put GEMINI_MODEL "${GEMINI_MODEL:-gemini-3.8-flash}"
           put CORS_ORIGIN "$CORS_ORIGIN"
           put PUBLIC_API_URL "https://$API_HOST"
+          # Backup su Google Drive (deploy/backup): acceso solo se ci sono entrambi i secret.
+          if [ -n "$BACKUP_FERNET_KEY" ] && [ -n "$RCLONE_DRIVE_TOKEN" ]; then
+            put BACKUP_ENABLED 1
+            put BACKUP_FERNET_KEY "$BACKUP_FERNET_KEY"
+            put RCLONE_DRIVE_TOKEN "$(printf '%s' "$RCLONE_DRIVE_TOKEN" | tr -d '\n')"
+            put BACKUP_HOUR "${BACKUP_HOUR:-3}"
+            put BACKUP_RETENTION_DAYS "${BACKUP_RETENTION_DAYS:-30}"
+            echo "Backup su Google Drive: attivo"
+          else
+            echo "::warning::Backup su Google Drive disattivato: mancano i secret BACKUP_FERNET_KEY e/o RCLONE_DRIVE_TOKEN (vedi deploy/README.md)"
+          fi
           printf '%s {\n\treverse_proxy dressit-api:4000\n}\n' "$API_HOST" > deploy/site.caddy
           echo "Indirizzo dell'API: https://$API_HOST"
       - name: Copia sulla VM e avvia

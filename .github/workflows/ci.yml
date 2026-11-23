@@ -46,3 +46,13 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: https://dressit-api.example.com
           NEXT_TELEMETRY_DISABLED: "1"
+
+  backup:
+    name: backup · dump, cifratura e ripristino
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Costruisce deploy/backup e lo prova contro due Postgres 16 usa e getta, con dati finti
+      # e una cartella locale al posto di Google Drive. Nessun secret richiesto.
+      - name: Test del backup
+        run: bash deploy/backup/test.sh

@@ -176,6 +176,8 @@ Per provare la fotocamera da telefono in locale serve HTTPS (es. `npx next dev -
    | Variable | `GEMINI_MODEL` | facoltativa, di base `gemini-3.8-flash` |
    | Variable | `API_HOST` | facoltativa: dominio tuo per l'API (record DNS `A` verso la VM) |
    | Variable | `CORS_ORIGIN` | facoltativa, di base `https://lorenzomp7.github.io`; aggiungi qui un eventuale dominio custom del frontend |
+   | Secret | `BACKUP_FERNET_KEY` | facoltativa: attiva il backup su Google Drive insieme a `RCLONE_DRIVE_TOKEN` (vedi [deploy/README.md](deploy/README.md#backup-su-google-drive-dressit)) |
+   | Secret | `RCLONE_DRIVE_TOKEN` | facoltativa: token OAuth di rclone per il tuo Google Drive |
 
 3. **Settings → Pages → Source: GitHub Actions**.
 4. Da **Actions** lancia *Deploy backend* e poi *GitHub Pages* (*Run workflow*). L'API risponde su
@@ -216,8 +218,10 @@ li imposta `pages.yml`; se cambi `VM_HOST` o `API_HOST` rilancia *GitHub Pages*.
 - **Sempre online:** l'API gira 24/7 sulla VM (niente sleep, niente keep-alive). GitHub Pages non permette
   header HTTP personalizzati: `nosniff` lo imposta già GitHub, `Referrer-Policy` è ora un tag `<meta>` nella
   pagina, `Permissions-Policy` non è più applicato (la fotocamera la chiede comunque il browser).
-- **Backup:** il database sta nel volume Docker `dressit_db-data` sulla VM. Per una copia:
-  `sudo docker exec dressit-db pg_dump -U dressit dressit > dressit.sql`.
+- **Backup:** con i secret `BACKUP_FERNET_KEY` e `RCLONE_DRIVE_TOKEN` il container `dressit-backup` salva
+  ogni notte il database (e ogni settimana le foto) su Google Drive, cifrati, con 30 giorni di conservazione.
+  Attivazione, controlli e ripristino sono in [deploy/README.md](deploy/README.md#backup-su-google-drive-dressit).
+  Copia manuale al volo: `sudo docker exec dressit-db pg_dump -U dressit dressit > dressit.sql`.
 - **Sicurezza:** password con bcrypt (cost 12), JWT a 30 giorni, rate limit globale e più stretto su login e AI, metadati EXIF/GPS rimossi dalle foto, ID restituiti dall'AI verificati contro il DB, ENV validate all'avvio.
 - **Costi AI:** il tagging usa `thinkingLevel: LOW` su immagini da 1024px; lo stylist usa `thinkingLevel: MEDIUM` e mette istruzioni + guardaroba (che cambiano di rado) all'inizio del prompt, così la cache implicita di Gemini li riutilizza.
 

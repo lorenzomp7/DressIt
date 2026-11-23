@@ -42,9 +42,37 @@ services:
     mem_limit: 1g
     networks: [internal, web]
 
+  # Backup giornaliero del database e settimanale delle foto su Google Drive, cifrati (deploy/backup).
+  # Parte solo con il profilo "backup", che remote-deploy.sh attiva quando ci sono i secret
+  # BACKUP_FERNET_KEY e RCLONE_DRIVE_TOKEN: senza, il deploy resta com'era.
+  backup:
+    build: ./backup
+    container_name: dressit-backup
+    restart: unless-stopped
+    profiles: [backup]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: dressit
+      PGDATABASE: dressit
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_FERNET_KEY: ${BACKUP_FERNET_KEY:-}
+      RCLONE_DRIVE_TOKEN: ${RCLONE_DRIVE_TOKEN:-}
+      BACKUP_REMOTE: ${BACKUP_REMOTE:-gdrive:DressIt-backup}
+      BACKUP_HOUR: ${BACKUP_HOUR:-3}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - uploads:/uploads:ro
+      - backup-state:/state
+    mem_limit: 256m
+    networks: [internal]
+
 volumes:
   db-data:
   uploads:
+  backup-state:
 
 networks:
   internal:
