@@ -122,9 +122,38 @@ DressIt/
 | `POST` | `/items/wear` | `{ itemIds, timezone? }` → registra i capi indossati nel giorno locale |
 | `GET` | `/weather?lat&lon` | meteo attuale |
 | `POST` | `/outfits/suggest` | `{ message, history, location?, timezone }` → `{ reply, outfits[], weather }` |
+| `POST` | `/mcp` | server MCP (Streamable HTTP, senza sessioni) con `list_items`, `suggest_outfit`, `log_wear`: vedi sotto |
 | `GET` | `/health` | health check (usato dal workflow di deploy) |
 | `GET` | `/admin/stats` · `/admin/users` · `/admin/items` | **solo admin**: statistiche, utenti, ultimi capi analizzati |
 | `DELETE` | `/admin/users/:id` | **solo admin**: elimina un account con tutti i suoi capi e immagini |
+
+### Usare l'armadio da Claude (MCP)
+
+`POST /mcp` è un server [MCP](https://modelcontextprotocol.io). Con lui Claude o un altro assistente
+usa il tuo armadio senza aprire la PWA: «cosa mi metto stasera?», «segna che oggi ho messo la
+giacca blu». È fatto con l'SDK ufficiale `@modelcontextprotocol/sdk` (MIT) e ha tre strumenti:
+
+| Strumento | Cosa fa |
+|---|---|
+| `list_items` | i tuoi capi, filtrabili per `category`, `season`, `formality` e testo (`search`), fino a `limit` (di base 50) |
+| `suggest_outfit` | lo stesso stylist della chat: fino a 3 outfit per `occasion`, con il meteo se passi `location` e solo con i tuoi capi; massimo 15 chiamate al minuto per utente |
+| `log_wear` | segna come indossati gli `item_ids` di un look, oggi o in un giorno (`date`) degli ultimi 30; tutto o niente, senza doppioni |
+
+L'accesso usa lo stesso token delle API, che vale 30 giorni e dà accesso a tutto il tuo armadio:
+trattalo come una password. Ogni strumento vede solo i capi dell'utente del token. Il limite è di
+30 richieste al minuto su `/mcp`. Le chiamate a Gemini contano come quelle della chat, quindi
+nessun costo in più.
+
+```bash
+API=https://dressit.<IP con i trattini>.sslip.io        # o il tuo API_HOST
+TOKEN=$(curl -s "$API/auth/login" -H 'content-type: application/json' \
+  -d '{"email":"tu@esempio.it","password":"…"}' | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
+claude mcp add --transport http dressit "$API/mcp" --header "Authorization: Bearer $TOKEN"   # Claude Code
+```
+
+Con Claude Desktop o un altro client vanno indicati lo stesso indirizzo `…/mcp` e l'header
+`Authorization: Bearer <token>`. Ai connettori personalizzati di claude.ai serve invece OAuth,
+che qui non c'è ancora.
 
 ## Sviluppo locale
 
@@ -151,6 +180,15 @@ Per verificare typecheck e build di entrambe le app, dalla radice:
 ```bash
 npm ci
 npm run check
+```
+
+I test dell'API (`cd apps/api && npm test`) girano senza database. Quelli del server MCP su un
+database vero partono se `TEST_DATABASE_URL` punta a un database usa e getta con "test" nel nome,
+perché lo svuotano. Con il Postgres di `docker compose`:
+
+```bash
+docker compose exec db createdb -U dressit dressit_test
+TEST_DATABASE_URL=postgres://dressit:dressit@127.0.0.1:5432/dressit_test npm test
 ```
 
 Per provare la fotocamera da telefono in locale serve HTTPS (es. `npx next dev --experimental-https` o un tunnel tipo ngrok); in produzione HTTPS c'è già (GitHub Pages per il frontend, Caddy con Let's Encrypt per l'API).

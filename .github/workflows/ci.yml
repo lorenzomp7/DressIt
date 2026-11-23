@@ -23,6 +23,18 @@ jobs:
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}
+    # Database usa e getta per i test dell'API che lo richiedono (test/mcp.test.ts).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: dressit
+          POSTGRES_PASSWORD: dressit
+          POSTGRES_DB: dressit_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U dressit -d dressit_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +52,8 @@ jobs:
 
       - name: Test
         run: npm test --if-present
+        env:
+          TEST_DATABASE_URL: ${{ matrix.app == 'api' && 'postgres://dressit:dressit@127.0.0.1:5432/dressit_test' || '' }}
 
       - name: Build
         run: npm run build

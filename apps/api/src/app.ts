@@ -10,6 +10,7 @@ import adminRoutes from "./routes/admin.js";
 import authRoutes from "./routes/auth.js";
 import healthRoutes from "./routes/health.js";
 import itemRoutes from "./routes/items.js";
+import mcpRoutes from "./routes/mcp.js";
 import outfitRoutes from "./routes/outfits.js";
 import { localStorage } from "./services/storage.js";
 
@@ -58,6 +59,7 @@ export async function buildApp() {
   await app.register(itemRoutes);
   await app.register(outfitRoutes);
   await app.register(adminRoutes);
+  await app.register(mcpRoutes);
 
   return app;
 }

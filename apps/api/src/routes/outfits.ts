@@ -1,9 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { trackAi } from "../repositories/aiEvents.js";
-import { listWearHistory } from "../repositories/wearHistory.js";
-import { listItems } from "../repositories/items.js";
-import { AiError, suggestOutfits } from "../services/ai.js";
+import { AiError } from "../services/ai.js";
+import { suggestForUser } from "../services/stylist.js";
 import { getWeather } from "../services/weather.js";
 
 const SuggestSchema = z.object({
@@ -34,42 +32,8 @@ export default async function outfitRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const body = SuggestSchema.safeParse(request.body);
       if (!body.success) return reply.code(400).send({ error: "Richiesta non valida" });
-      const { message, location, timezone } = body.data;
-
-      const wardrobe = await listItems(request.user.sub);
-      if (wardrobe.length === 0) {
-        return {
-          reply: "Il tuo guardaroba è ancora vuoto! Fotografa qualche capo e poi chiedimi un outfit.",
-          outfits: [],
-          weather: null,
-        };
-      }
-
-      // Keep the most recent turns, and make sure the conversation starts with a user turn.
-      let history = body.data.history.slice(-12);
-      while (history[0]?.role === "assistant") history = history.slice(1);
-
-      const wearHistory = await listWearHistory(request.user.sub);
-      const weather = location ? await getWeather(location.lat, location.lon) : null;
-
       try {
-        const result = await trackAi(request.user.sub, "outfit", () =>
-          suggestOutfits({ message, history, wardrobe, weather, timezone, wearHistory }),
-        );
-
-        // Never trust IDs coming back from the model: keep only items the user owns.
-        const byId = new Map(wardrobe.map((i) => [i.id, i]));
-        const outfits = result.outfits
-          .map((o) => ({
-            title: o.title,
-            explanation: o.explanation,
-            missingPiece: o.missing_piece || null,
-            items: [...new Set(o.item_ids)].flatMap((id) => byId.get(id) ?? []),
-          }))
-          .filter((o) => o.items.length > 0)
-          .slice(0, 3);
-
-        return { reply: result.reply, outfits, weather };
+        return await suggestForUser(request.user.sub, body.data);
       } catch (err) {
         if (err instanceof AiError) return reply.code(err.statusCode).send({ error: err.message });
         throw err;
