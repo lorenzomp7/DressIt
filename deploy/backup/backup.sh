@@ -18,7 +18,8 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 STATE="${BACKUP_STATE_DIR:-/state}"
 REMOTE="${BACKUP_REMOTE:-gdrive:DressIt-backup}"
 RETENTION="${BACKUP_RETENTION_DAYS:-30}"
-HOUR="${BACKUP_HOUR:-3}"
+HOUR="$(echo "${BACKUP_HOUR:-3}" | sed 's/^0*//')"   # "08" → "8": printf leggerebbe l'ottale
+HOUR="${HOUR:-0}"
 WEEKDAY="${BACKUP_UPLOADS_WEEKDAY:-7}"
 UPLOADS="${BACKUP_UPLOADS_DIR:-/uploads}"
 TMP="${TMPDIR:-/tmp}"
@@ -123,6 +124,7 @@ seconds_to_next_run() {
 
 loop() {
   check_config
+  case "$HOUR" in [0-9]|1[0-9]|2[0-3]) ;; *) fail "BACKUP_HOUR deve essere un'ora da 0 a 23" ;; esac
   mkdir -p "$STATE"
   [ -f "$STATE/first_start" ] || date +%s > "$STATE/first_start"
   log "servizio attivo: database ogni giorno alle $HOUR:00, foto il giorno $WEEKDAY della settimana, conservazione $RETENTION giorni"
