@@ -4,6 +4,7 @@ Fotografa i tuoi vestiti, l'AI li cataloga e ti suggerisce outfit in base a mete
 
 ## Funzionalità
 
+- **Accesso anche senza account:** «Continua come ospite» come in FreeWay; l'ospite può creare un account in qualsiasi momento senza perdere l'armadio.
 - **Guardaroba digitale:** foto da fotocamera o galleria, catalogazione AI, filtri e modifica manuale dei capi.
 - **Stylist in chat:** fino a tre proposte con immagini e spiegazioni, usando i capi del tuo account.
 - **Meteo facoltativo:** la posizione permette di adattare i consigli alle condizioni locali.
@@ -115,7 +116,9 @@ DressIt/
 | Metodo | Path | Descrizione |
 |---|---|---|
 | `POST` | `/auth/register` · `/auth/login` | restituisce `{ token, user }` |
-| `GET` | `/auth/me` | utente corrente |
+| `POST` | `/auth/guest` | «Continua come ospite»: crea un utente senza email, `{ token, user }` con `isGuest: true` (massimo 5 l'ora per indirizzo) |
+| `POST` | `/auth/upgrade` | l'ospite crea un account `{ email, password, displayName? }`: stesso utente, stesso armadio |
+| `GET` | `/auth/me` | utente corrente; per gli ospiti anche un `token` rinnovato |
 | `GET` | `/items` · `/items/:id` | guardaroba |
 | `POST` | `/items` | multipart `image` → tagging AI + salvataggio |
 | `PATCH` · `DELETE` | `/items/:id` | modifica manuale / eliminazione (anche dell'immagine) |
@@ -243,6 +246,7 @@ Sulla VM le imposta il workflow a partire da secret e variabili del repo (`deplo
 | `JWT_SECRET`, `GEMINI_API_KEY` | secret | obbligatorie |
 | `CLOUDINARY_URL` | secret | facoltativa |
 | `ADMIN_EMAILS`, `GEMINI_MODEL` | variabili | facoltative |
+| `GUEST_INACTIVE_DAYS` | variabile, di base `90` | giorni dopo l'ultimo uso in cui scade l'accesso di un ospite; ogni notte gli ospiti più vecchi vengono cancellati con le foto (gli account mai) |
 | `CORS_ORIGIN` | variabile, di base `https://lorenzomp7.github.io` | lista separata da virgole |
 | `PUBLIC_API_URL` | automatica (`https://` + host dell'API) | usata per gli URL delle immagini salvate su disco |
 | `GEMINI_BASE_URL` | opzionale | endpoint alternativo (proxy aziendale o mock per i test) |
@@ -260,7 +264,7 @@ li imposta `pages.yml`; se cambi `VM_HOST` o `API_HOST` rilancia *GitHub Pages*.
   ogni notte il database (e ogni settimana le foto) su Google Drive, cifrati, con 30 giorni di conservazione.
   Attivazione, controlli e ripristino sono in [deploy/README.md](deploy/README.md#backup-su-google-drive-dressit).
   Copia manuale al volo: `sudo docker exec dressit-db pg_dump -U dressit dressit > dressit.sql`.
-- **Sicurezza:** password con bcrypt (cost 12), JWT a 30 giorni, rate limit globale e più stretto su login e AI, metadati EXIF/GPS rimossi dalle foto, ID restituiti dall'AI verificati contro il DB, ENV validate all'avvio.
+- **Sicurezza:** password con bcrypt (cost 12), JWT a 30 giorni (ospiti: 90 giorni dall'ultimo uso, rinnovati all'apertura dell'app), rate limit globale e più stretto su login e AI, metadati EXIF/GPS rimossi dalle foto, ID restituiti dall'AI verificati contro il DB, ENV validate all'avvio.
 - **Costi AI:** il tagging usa `thinkingLevel: LOW` su immagini da 1024px; lo stylist usa `thinkingLevel: MEDIUM` e mette istruzioni + guardaroba (che cambiano di rado) all'inizio del prompt, così la cache implicita di Gemini li riutilizza.
 
 ## Strumenti per lo sviluppo con agenti

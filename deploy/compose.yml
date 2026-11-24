@@ -34,6 +34,7 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:?manca il secret GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      GUEST_INACTIVE_DAYS: ${GUEST_INACTIVE_DAYS:-90}
       CLOUDINARY_URL: ${CLOUDINARY_URL:-}
       CORS_ORIGIN: ${CORS_ORIGIN:-https://lorenzomp7.github.io}
       PUBLIC_API_URL: ${PUBLIC_API_URL}

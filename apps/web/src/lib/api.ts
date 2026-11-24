@@ -100,7 +100,16 @@ export const api = {
       method: "POST",
       body: json({ email, password }),
     }),
-  me: () => request<{ user: User }>("/auth/me"),
+  /** "Continua come ospite": a user with no email or password. */
+  guest: () => request<{ token: string; user: User }>("/auth/guest", { method: "POST" }),
+  /** A guest creates an account and keeps the wardrobe. */
+  upgrade: (email: string, password: string, displayName?: string) =>
+    request<{ token: string; user: User }>("/auth/upgrade", {
+      method: "POST",
+      body: json({ email, password, displayName }),
+    }),
+  /** For guests also returns a renewed token (their access lasts as long as they use the app). */
+  me: () => request<{ user: User; token?: string }>("/auth/me"),
 
   listItems: () => request<{ items: Item[] }>("/items").then((r) => r.items),
   getItem: (id: string) => request<{ item: Item }>(`/items/${id}`).then((r) => r.item),

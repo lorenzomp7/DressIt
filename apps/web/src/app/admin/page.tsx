@@ -205,7 +205,7 @@ function Users({ currentUserId, onShowItems }: { currentUserId: string; onShowIt
   if (!data) return <Loading error={error} />;
 
   async function remove(u: AdminUser) {
-    if (!confirm(`Eliminare l'account ${u.email} e tutti i suoi ${u.itemCount} capi? L'operazione è definitiva.`)) {
+    if (!confirm(`Eliminare l'account ${u.email ?? "ospite"} e tutti i suoi ${u.itemCount} capi? L'operazione è definitiva.`)) {
       return;
     }
     setActionError(null);
@@ -226,7 +226,7 @@ function Users({ currentUserId, onShowItems }: { currentUserId: string; onShowIt
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate font-medium">
-                  {u.email}
+                  {u.email ?? "Ospite"}
                   {u.id === currentUserId && <span className="ml-1.5 text-xs text-accent">(tu)</span>}
                 </p>
                 <p className="text-xs text-muted">
@@ -237,7 +237,7 @@ function Users({ currentUserId, onShowItems }: { currentUserId: string; onShowIt
                 <button
                   type="button"
                   onClick={() => remove(u)}
-                  aria-label={`Elimina ${u.email}`}
+                  aria-label={`Elimina ${u.email ?? "ospite"}`}
                   className="shrink-0 rounded-full p-1.5 text-danger"
                 >
                   <Trash2 className="size-4" />
@@ -270,7 +270,7 @@ function Items({ user, onClearUser }: { user: AdminUser | null; onClearUser: () 
       <p className="mb-3 text-sm text-muted">
         {user ? (
           <>
-            Capi di <strong className="text-fg">{user.email}</strong> ·{" "}
+            Capi di <strong className="text-fg">{user.email ?? "un ospite"}</strong> ·{" "}
             <button type="button" onClick={onClearUser} className="text-accent">
               mostra tutti
             </button>
@@ -311,7 +311,7 @@ function Items({ user, onClearUser }: { user: AdminUser | null; onClearUser: () 
                 </p>
                 {!user && (
                   <p className="mt-1 truncate text-[11px] text-muted">
-                    {item.ownerEmail} · {formatDate(item.createdAt)}
+                    {item.ownerEmail ?? "ospite"} · {formatDate(item.createdAt)}
                   </p>
                 )}
               </div>

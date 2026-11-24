@@ -20,6 +20,11 @@ const EnvSchema = z.object({
   UPLOAD_DIR: z.string().default("uploads"),
   /** Comma-separated emails that get the admin role (no admin password lives in the code). */
   ADMIN_EMAILS: z.string().default(""),
+  /**
+   * Guests (no account): their access lasts this many days after the last use and is renewed
+   * at each app start; guests idle longer are deleted with their photos every night.
+   */
+  GUEST_INACTIVE_DAYS: z.coerce.number().int().min(7).max(3650).default(90),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

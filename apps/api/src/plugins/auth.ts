@@ -5,8 +5,9 @@ import { config } from "../config.js";
 
 declare module "@fastify/jwt" {
   interface FastifyJWT {
-    payload: { sub: string; email: string };
-    user: { sub: string; email: string };
+    /** Guests have no email; `guest` marks their tokens (renewed at each app start). */
+    payload: { sub: string; email?: string; guest?: boolean };
+    user: { sub: string; email?: string; guest?: boolean };
   }
 }
 
@@ -18,8 +19,8 @@ declare module "fastify" {
 }
 
 /** Admins are configured via ADMIN_EMAILS and checked on every request, so revoking takes effect at once. */
-export function isAdmin(email: string): boolean {
-  return config.adminEmails.has(email.toLowerCase());
+export function isAdmin(email: string | null | undefined): boolean {
+  return Boolean(email) && config.adminEmails.has(email!.toLowerCase());
 }
 
 export default fp(async function authPlugin(app: FastifyInstance) {

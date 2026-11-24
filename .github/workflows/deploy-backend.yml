@@ -43,6 +43,7 @@ jobs:
           CLOUDINARY_URL: ${{ secrets.CLOUDINARY_URL }}
           ADMIN_EMAILS: ${{ vars.ADMIN_EMAILS }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GUEST_INACTIVE_DAYS: ${{ vars.GUEST_INACTIVE_DAYS }}
           CORS_ORIGIN: ${{ vars.CORS_ORIGIN || 'https://lorenzomp7.github.io' }}
           BACKUP_FERNET_KEY: ${{ secrets.BACKUP_FERNET_KEY }}
           RCLONE_DRIVE_TOKEN: ${{ secrets.RCLONE_DRIVE_TOKEN }}
@@ -59,6 +60,7 @@ jobs:
           put CLOUDINARY_URL "$CLOUDINARY_URL"
           put ADMIN_EMAILS "$ADMIN_EMAILS"
           put GEMINI_MODEL "${GEMINI_MODEL:-gemini-3.8-flash}"
+          put GUEST_INACTIVE_DAYS "${GUEST_INACTIVE_DAYS:-90}"
           put CORS_ORIGIN "$CORS_ORIGIN"
           put PUBLIC_API_URL "https://$API_HOST"
           # Backup su Google Drive (deploy/backup): acceso solo se ci sono entrambi i secret.
