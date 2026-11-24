@@ -75,7 +75,10 @@ else
     local envs=() mounts=()
     while [ "$1" != "--" ]; do envs+=(-e "$1"); shift; done; shift
     [ "$up" != - ] && mounts=(-v "$up:/uploads")
-    docker run --rm --network "$NET" -e PGHOST="$ID-$db" -e PGUSER=dressit -e PGDATABASE=dressit \
+    # Con l'utente di chi lancia il test: i file nelle cartelle montate restano suoi (sulla VM gira
+    # come root su volumi Docker, dove non conta).
+    docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp --network "$NET" \
+      -e PGHOST="$ID-$db" -e PGUSER=dressit -e PGDATABASE=dressit \
       -e PGPASSWORD="$PASS" -e BACKUP_FERNET_KEY="$KEY" -e BACKUP_REMOTE=/remote \
       -v "$REMOTE:/remote" -v "$WORK/state:/state" "${mounts[@]}" "${envs[@]}" "$IMG" "$@"
   }
