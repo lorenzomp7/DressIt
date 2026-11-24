@@ -58,13 +58,13 @@ Open-Meteo.
 
 | Livello | Scelta | Motivo |
 |---|---|---|
-| Frontend | **Next.js 16 (App Router, export statico) + React 19 + Tailwind CSS 4**, servito come Render Static Site | PWA installabile (manifest + service worker), `<input capture>` per la fotocamera nativa, tema chiaro/scuro |
+| Frontend | **Next.js 16 (App Router, export statico) + React 19 + Tailwind CSS 4**, pubblicato su **GitHub Pages** | PWA installabile (manifest + service worker), `<input capture>` per la fotocamera nativa, tema chiaro/scuro |
 | Backend | **Node 22 + Fastify 5 + TypeScript** | veloce, multipart nativo, rate limiting e JWT come plugin ufficiali |
 | AI | **Google Gemini (`gemini-3.8-flash`) via `@google/genai`** | un solo modello multimodale per vision e ragionamento, veloce ed economico; **output JSON vincolato** da schema (`responseJsonSchema`) e rivalidato con Zod |
-| Database | **PostgreSQL 16 su Render** + `pg` + migration SQL | gestito nativamente da Render; array nativi (`TEXT[]`) per colori/tag/stagioni |
-| Immagini | **Cloudinary** (fallback: disco locale) | CDN e storage persistente; il disco di Render è effimero |
+| Database | **PostgreSQL 16** (container sulla VM Oracle) + `pg` + migration SQL | dati su volume persistente, non raggiungibile da Internet; array nativi (`TEXT[]`) per colori/tag/stagioni |
+| Immagini | **Disco della VM** (volume Docker) o **Cloudinary** | sulla VM le foto restano tra un riavvio e l'altro; Cloudinary aggiunge CDN e ridimensionamento |
 | Meteo | **Open-Meteo** | gratuito, senza API key |
-| Deploy | **Render Blueprint (`render.yaml`)** | DB + API + web creati e collegati da un solo file |
+| Deploy | **GitHub Pages + VM Oracle Cloud Always Free** (Docker + Caddy) | 0 €/mese, API sempre accesa, HTTPS automatico; tutto dai workflow GitHub Actions |
 
 > Il modello è configurabile con `GEMINI_MODEL` (default `gemini-3.8-flash`). Se Gemini blocca una richiesta per i filtri di sicurezza o la risposta non rispetta lo schema, l'API restituisce un errore chiaro invece di salvare dati sbagliati.
 
@@ -73,8 +73,9 @@ Open-Meteo.
 ```
 DressIt/
 ├── .github/workflows/ci.yml     # CI: typecheck + build di api e web su ogni PR
-├── .github/workflows/keep-alive.yml # ping all'API ogni 10 min per evitare lo sleep del piano free
-├── render.yaml                  # Infrastructure as Code (DB + API + web)
+├── .github/workflows/pages.yml  # build del frontend e pubblicazione su GitHub Pages
+├── .github/workflows/deploy-backend.yml # API + Postgres sulla VM Oracle
+├── deploy/                      # compose, Caddy e guida della VM (deploy/README.md)
 ├── docker-compose.yml           # Postgres per lo sviluppo locale
 ├── apps/
 │   ├── api/                     # Backend Fastify
@@ -121,9 +122,38 @@ DressIt/
 | `POST` | `/items/wear` | `{ itemIds, timezone? }` → registra i capi indossati nel giorno locale |
 | `GET` | `/weather?lat&lon` | meteo attuale |
 | `POST` | `/outfits/suggest` | `{ message, history, location?, timezone }` → `{ reply, outfits[], weather }` |
-| `GET` | `/health` | health check usato da Render |
+| `POST` | `/mcp` | server MCP (Streamable HTTP, senza sessioni) con `list_items`, `suggest_outfit`, `log_wear`: vedi sotto |
+| `GET` | `/health` | health check (usato dal workflow di deploy) |
 | `GET` | `/admin/stats` · `/admin/users` · `/admin/items` | **solo admin**: statistiche, utenti, ultimi capi analizzati |
 | `DELETE` | `/admin/users/:id` | **solo admin**: elimina un account con tutti i suoi capi e immagini |
+
+### Usare l'armadio da Claude (MCP)
+
+`POST /mcp` è un server [MCP](https://modelcontextprotocol.io). Con lui Claude o un altro assistente
+usa il tuo armadio senza aprire la PWA: «cosa mi metto stasera?», «segna che oggi ho messo la
+giacca blu». È fatto con l'SDK ufficiale `@modelcontextprotocol/sdk` (MIT) e ha tre strumenti:
+
+| Strumento | Cosa fa |
+|---|---|
+| `list_items` | i tuoi capi, filtrabili per `category`, `season`, `formality` e testo (`search`), fino a `limit` (di base 50) |
+| `suggest_outfit` | lo stesso stylist della chat: fino a 3 outfit per `occasion`, con il meteo se passi `location` e solo con i tuoi capi; massimo 15 chiamate al minuto per utente |
+| `log_wear` | segna come indossati gli `item_ids` di un look, oggi o in un giorno (`date`) degli ultimi 30; tutto o niente, senza doppioni |
+
+L'accesso usa lo stesso token delle API, che vale 30 giorni e dà accesso a tutto il tuo armadio:
+trattalo come una password. Ogni strumento vede solo i capi dell'utente del token. Il limite è di
+30 richieste al minuto su `/mcp`. Le chiamate a Gemini contano come quelle della chat, quindi
+nessun costo in più.
+
+```bash
+API=https://dressit.<IP con i trattini>.sslip.io        # o il tuo API_HOST
+TOKEN=$(curl -s "$API/auth/login" -H 'content-type: application/json' \
+  -d '{"email":"tu@esempio.it","password":"…"}' | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
+claude mcp add --transport http dressit "$API/mcp" --header "Authorization: Bearer $TOKEN"   # Claude Code
+```
+
+Con Claude Desktop o un altro client vanno indicati lo stesso indirizzo `…/mcp` e l'header
+`Authorization: Bearer <token>`. Ai connettori personalizzati di claude.ai serve invece OAuth,
+che qui non c'è ancora.
 
 ## Sviluppo locale
 
@@ -152,67 +182,84 @@ npm ci
 npm run check
 ```
 
-Per provare la fotocamera da telefono in locale serve HTTPS (es. `npx next dev --experimental-https` o un tunnel tipo ngrok); in produzione Render fornisce HTTPS automaticamente.
+I test dell'API (`cd apps/api && npm test`) girano senza database. Quelli del server MCP su un
+database vero partono se `TEST_DATABASE_URL` punta a un database usa e getta con "test" nel nome,
+perché lo svuotano. Con il Postgres di `docker compose`:
 
-## Deploy su Render (passo-passo)
+```bash
+docker compose exec db createdb -U dressit dressit_test
+TEST_DATABASE_URL=postgres://dressit:dressit@127.0.0.1:5432/dressit_test npm test
+```
 
-1. **Pusha il repo su GitHub** (questo branch o `main`).
-2. Su [dashboard.render.com](https://dashboard.render.com) → **New → Blueprint** → collega il repository GitHub e scegli il branch.
-3. Render legge `render.yaml` e mostra le 3 risorse: `dressit-db`, `dressit-api`, `dressit-web`. Ti chiede i valori delle variabili marcate `sync: false`:
-   - `GEMINI_API_KEY` → creala su [Google AI Studio](https://aistudio.google.com/apikey) → *Create API key*. Per un uso oltre la quota gratuita, collega un progetto con fatturazione attiva.
-   - `CLOUDINARY_URL` → su [cloudinary.com](https://cloudinary.com) → *Dashboard → API Environment variable* (formato `cloudinary://<key>:<secret>@<cloud_name>`). Puoi lasciarla vuota per una demo, ma le foto spariranno a ogni deploy.
-4. Clicca **Apply**. Render crea il database, poi l'API (che applica le migration all'avvio) e infine il frontend.
-5. Apri `https://dressit-web.onrender.com` dal telefono → menu del browser → **Aggiungi a schermata Home**.
+Per provare la fotocamera da telefono in locale serve HTTPS (es. `npx next dev --experimental-https` o un tunnel tipo ngrok); in produzione HTTPS c'è già (GitHub Pages per il frontend, Caddy con Let's Encrypt per l'API).
+
+## Deploy (gratuito: GitHub Pages + VM Oracle)
+
+- **Frontend** → GitHub Pages, <https://lorenzomp7.github.io/DressIt/> (workflow `pages.yml`, a ogni push su `main` che tocca `apps/web`).
+- **API + PostgreSQL** → una VM Oracle Cloud *Always Free* condivisa con gli altri progetti, 0 €/mese, sempre accesa
+  (workflow `deploy-backend.yml`, a ogni push su `main` che tocca `apps/api` o `deploy`).
+
+1. **Crea la VM** una volta sola seguendo [deploy/README.md](deploy/README.md).
+2. In **Settings → Secrets and variables → Actions** del repo:
+
+   | Tipo | Nome | Valore |
+   |---|---|---|
+   | Variable | `VM_HOST` | IP pubblico della VM |
+   | Secret | `VM_SSH_KEY` | chiave privata SSH della VM |
+   | Secret | `POSTGRES_PASSWORD` | password del database, solo lettere e numeri (es. `openssl rand -hex 24`) |
+   | Secret | `JWT_SECRET` | almeno 32 caratteri casuali (es. `openssl rand -hex 32`) |
+   | Secret | `GEMINI_API_KEY` | da [Google AI Studio](https://aistudio.google.com/apikey) → *Create API key* |
+   | Secret | `CLOUDINARY_URL` | facoltativa: `cloudinary://<key>:<secret>@<cloud_name>`; senza, le foto restano sul disco della VM |
+   | Variable | `ADMIN_EMAILS` | email degli amministratori, separate da virgola |
+   | Variable | `GEMINI_MODEL` | facoltativa, di base `gemini-3.8-flash` |
+   | Variable | `API_HOST` | facoltativa: dominio tuo per l'API (record DNS `A` verso la VM) |
+   | Variable | `CORS_ORIGIN` | facoltativa, di base `https://lorenzomp7.github.io`; aggiungi qui un eventuale dominio custom del frontend |
+   | Secret | `BACKUP_FERNET_KEY` | facoltativa: attiva il backup su Google Drive insieme a `RCLONE_DRIVE_TOKEN` (vedi [deploy/README.md](deploy/README.md#backup-su-google-drive-dressit)) |
+   | Secret | `RCLONE_DRIVE_TOKEN` | facoltativa: token OAuth di rclone per il tuo Google Drive |
+
+3. **Settings → Pages → Source: GitHub Actions**.
+4. Da **Actions** lancia *Deploy backend* e poi *GitHub Pages* (*Run workflow*). L'API risponde su
+   `https://dressit.<IP con i trattini>.sslip.io` e applica le migration all'avvio; il frontend la usa in automatico.
+5. Apri <https://lorenzomp7.github.io/DressIt/> dal telefono → menu del browser → **Aggiungi a schermata Home**.
 
 ### Accesso admin
 
-1. Su Render → `dressit-api` → **Environment** → imposta `ADMIN_EMAILS` con la tua email (più email separate da virgola). Il servizio si riavvia da solo.
+1. Imposta la variabile `ADMIN_EMAILS` con la tua email (più email separate da virgola) e rilancia *Deploy backend*.
 2. Nell'app **registrati** (o accedi) con quella email: in alto a destra nell'armadio compare l'icona 🛡️ che apre `/admin`.
 3. Il pannello mostra:
    - **Panoramica:** utenti e capi totali/ultimi 7 giorni, chiamate AI con tasso d'errore e latenza media/p95 (analisi foto e stylist separati), capi per categoria, ultimi errori AI.
    - **Utenti:** elenco con numero di capi e chiamate AI; puoi vederne i capi o eliminare l'account.
    - **Capi:** gli ultimi capi caricati con foto e tag generati dall'AI, per valutarne la qualità.
 
-Il ruolo è verificato a ogni richiesta dal backend: togliendo un'email da `ADMIN_EMAILS` l'accesso viene revocato subito. Nessuna password admin è scritta nel codice.
+Il ruolo è verificato a ogni richiesta dal backend: togliendo un'email da `ADMIN_EMAILS` l'accesso viene revocato al deploy successivo. Nessuna password admin è scritta nel codice.
 
-### Migrazione del frontend a Static Site (deploy già esistenti)
+### Variabili d'ambiente dell'API
 
-Se avevi già creato il Blueprint quando `dressit-web` era un servizio Node, Render non può convertirlo da solo:
-1. Su Render apri `dressit-web` → **Settings** → **Delete Web Service**.
-2. Apri il Blueprint → **Manual Sync**: Render ricrea `dressit-web` come Static Site con lo stesso nome. Di solito l'indirizzo resta `dressit-web.onrender.com`; se Render aggiunge un suffisso, `CORS_ORIGIN` si aggiorna da solo.
+Sulla VM le imposta il workflow a partire da secret e variabili del repo (`deploy/compose.yml`).
 
-### Variabili d'ambiente
-
-**`dressit-api`**
-
-| Variabile | Come viene impostata | Note |
+| Variabile | Da dove arriva | Note |
 |---|---|---|
-| `DATABASE_URL` | automatica (`fromDatabase`) | Internal URL, nessun SSL necessario |
-| `JWT_SECRET` | automatica (`generateValue`) | stringa casuale generata da Render |
-| `GEMINI_API_KEY` | **manuale** | obbligatoria |
-| `ADMIN_EMAILS` | **manuale** | email degli amministratori separate da virgola (es. `tu@gmail.com`) |
-| `CLOUDINARY_URL` | **manuale** | consigliata in produzione |
-| `CORS_ORIGIN` | automatica (host di `dressit-web`) | se aggiungi un dominio custom, mettilo qui (lista separata da virgole, es. `https://dressit.app,https://dressit-web.onrender.com`) |
-| `GEMINI_MODEL` | `gemini-3.8-flash` | modificabile |
+| `DATABASE_URL` | automatica | Postgres nel container `dressit-db`, rete interna, nessun SSL necessario |
+| `JWT_SECRET`, `GEMINI_API_KEY` | secret | obbligatorie |
+| `CLOUDINARY_URL` | secret | facoltativa |
+| `ADMIN_EMAILS`, `GEMINI_MODEL` | variabili | facoltative |
+| `CORS_ORIGIN` | variabile, di base `https://lorenzomp7.github.io` | lista separata da virgole |
+| `PUBLIC_API_URL` | automatica (`https://` + host dell'API) | usata per gli URL delle immagini salvate su disco |
 | `GEMINI_BASE_URL` | opzionale | endpoint alternativo (proxy aziendale o mock per i test) |
-| `NODE_ENV`, `NODE_VERSION` | `production`, `22` | |
-| `RENDER_EXTERNAL_URL` | impostata da Render | usata per gli URL delle immagini locali |
-| `DATABASE_SSL` | opzionale | `true` solo se usi l'*External* Database URL |
+| `DATABASE_SSL` | opzionale | `true` solo con un Postgres gestito esterno |
 
-**`dressit-web`**
-
-| Variabile | Come viene impostata | Note |
-|---|---|---|
-| `NEXT_PUBLIC_API_URL` | automatica (host di `dressit-api`) | letta **in fase di build**: se la cambi, fai *Manual Deploy → Clear build cache & deploy* |
-| `NODE_VERSION` | `22` | |
+Il frontend legge `NEXT_PUBLIC_API_URL` (host dell'API) e `NEXT_PUBLIC_BASE_PATH` (`/DressIt`) **in fase di build**:
+li imposta `pages.yml`; se cambi `VM_HOST` o `API_HOST` rilancia *GitHub Pages*.
 
 ### Note per la produzione
 
-- **Sempre online sul piano free:**
-  - `dressit-web` è uno **Static Site**: HTML/JS serviti dalla CDN di Render, gratis e mai in sleep.
-  - `dressit-api` è un web service free, che Render addormenta dopo 15 minuti senza traffico. Il workflow `.github/workflows/keep-alive.yml` chiama `/health` ogni 10 minuti per tenerlo sveglio (un servizio acceso 24/7 sono circa 744 ore, dentro le 750 ore gratuite al mese). I workflow pianificati girano solo dal **branch di default** del repo (imposta `main` in *Settings → General*) e GitHub li disattiva dopo 60 giorni senza attività sul repo; inoltre può ritardarli di qualche minuto: per più affidabilità aggiungi anche un monitor gratuito esterno, per esempio [UptimeRobot](https://uptimerobot.com) o [cron-job.org](https://cron-job.org), su `https://dressit-api.onrender.com/health` ogni 5-10 minuti.
-  - Se l'API dorme comunque, il frontend ritenta le richieste per circa un minuto mentre si riavvia, invece di mostrare subito un errore.
-  - **Limite del piano free:** il Postgres gratuito scade dopo 30 giorni. Per un uso reale passa a `basic-256mb` (DB) e `starter` (API) in `render.yaml`.
+- **Sempre online:** l'API gira 24/7 sulla VM (niente sleep, niente keep-alive). GitHub Pages non permette
+  header HTTP personalizzati: `nosniff` lo imposta già GitHub, `Referrer-Policy` è ora un tag `<meta>` nella
+  pagina, `Permissions-Policy` non è più applicato (la fotocamera la chiede comunque il browser).
+- **Backup:** con i secret `BACKUP_FERNET_KEY` e `RCLONE_DRIVE_TOKEN` il container `dressit-backup` salva
+  ogni notte il database (e ogni settimana le foto) su Google Drive, cifrati, con 30 giorni di conservazione.
+  Attivazione, controlli e ripristino sono in [deploy/README.md](deploy/README.md#backup-su-google-drive-dressit).
+  Copia manuale al volo: `sudo docker exec dressit-db pg_dump -U dressit dressit > dressit.sql`.
 - **Sicurezza:** password con bcrypt (cost 12), JWT a 30 giorni, rate limit globale e più stretto su login e AI, metadati EXIF/GPS rimossi dalle foto, ID restituiti dall'AI verificati contro il DB, ENV validate all'avvio.
 - **Costi AI:** il tagging usa `thinkingLevel: LOW` su immagini da 1024px; lo stylist usa `thinkingLevel: MEDIUM` e mette istruzioni + guardaroba (che cambiano di rado) all'inizio del prompt, così la cache implicita di Gemini li riutilizza.
 
@@ -238,6 +285,7 @@ Dalla radice, esegui `npm run check` per i controlli del progetto e `npm run age
 | Vibetest | Esplorazione e test browser con modello configurato |
 | container-use | Ambienti isolati su un host con Docker |
 | Gemini CLI | Assistente da terminale con autenticazione propria |
+| REA (`rea` in `.mcp.optional.json`) e `scripts/apk/analizza_apk.py` | Analisi delle app di guardaroba concorrenti dai loro APK: schede in [docs/app-analizzate](docs/app-analizzate/README.md) |
 
 Le verifiche browser in CI usano risposte API simulate; non attestano il
 funzionamento del deploy, delle credenziali Google o delle chiamate AI reali.
@@ -258,7 +306,7 @@ della [PR #3](https://github.com/lorenzomp7/DressIt/pull/3), integrata in `main`
 
 Questi risultati riguardano il commit indicato. Non verificano le chiamate reali a
 Gemini, l'autenticazione Google, la qualità dei suggerimenti AI, le migrazioni su
-un database di produzione o il deploy Render. Le esecuzioni precedenti fallite
+un database di produzione o il deploy. Le esecuzioni precedenti fallite
 degli strumenti sono state seguite dalle esecuzioni riuscite riportate sopra.
 
 ## Risultati CI — 17 novembre 2026

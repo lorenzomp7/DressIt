@@ -136,8 +136,17 @@ export async function deleteItem(userId: string, id: string): Promise<Item | nul
   return rows[0] ? toItem(rows[0]) : null;
 }
 
-/** Atomically record all owned garments or reject the entire outfit. */
-export async function markWorn(userId: string, ids: string[], timezone = "Europe/Rome"): Promise<number | null> {
+/**
+ * Atomically record all owned garments or reject the entire outfit.
+ * `wornOn` (YYYY-MM-DD, already validated by the caller) records a past day; without it, today in
+ * `timezone`. last_worn_at only moves forward, so logging an older day never hides a newer use.
+ */
+export async function markWorn(
+  userId: string,
+  ids: string[],
+  timezone = "Europe/Rome",
+  wornOn?: string,
+): Promise<number | null> {
   const uniqueIds = [...new Set(ids)];
   const client = await pool.connect();
   try {
@@ -150,16 +159,21 @@ export async function markWorn(userId: string, ids: string[], timezone = "Europe
       await client.query("ROLLBACK");
       return null;
     }
+    // $4 NULL = today in the user's timezone (the app's "indossato oggi").
     await client.query(
       `INSERT INTO item_wear_history (item_id, worn_on)
-       SELECT id, (now() AT TIME ZONE $3)::date FROM items
+       SELECT id, COALESCE($4::date, (now() AT TIME ZONE $3)::date) FROM items
        WHERE user_id = $1 AND id = ANY($2::uuid[])
        ON CONFLICT (item_id, worn_on) DO NOTHING`,
-      [userId, uniqueIds, timezone],
+      [userId, uniqueIds, timezone, wornOn ?? null],
     );
     await client.query(
-      "UPDATE items SET last_worn_at = now() WHERE user_id = $1 AND id = ANY($2::uuid[])",
-      [userId, uniqueIds],
+      `UPDATE items SET last_worn_at = GREATEST(
+         COALESCE(last_worn_at, '-infinity'::timestamptz),
+         CASE WHEN $4::date IS NULL OR $4::date = (now() AT TIME ZONE $3)::date THEN now()
+              ELSE ($4::date + time '12:00') AT TIME ZONE $3 END)
+       WHERE user_id = $1 AND id = ANY($2::uuid[])`,
+      [userId, uniqueIds, timezone, wornOn ?? null],
     );
     await client.query("COMMIT");
     return uniqueIds.length;

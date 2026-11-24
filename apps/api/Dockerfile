@@ -1,4 +1,4 @@
-# Alternativa a runtime: node (es. per altri provider o test locali con Docker).
+# Immagine dell'API per la VM Oracle (deploy/compose.yml) o per test locali con Docker.
 FROM node:22-slim AS build
 WORKDIR /app
 COPY package*.json ./
@@ -14,6 +14,8 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
 COPY migrations ./migrations
+# Cartella delle foto: sulla VM è un volume Docker, deve appartenere all'utente node.
+RUN mkdir -p uploads && chown node:node uploads
 USER node
 EXPOSE 4000
 CMD ["npm", "start"]

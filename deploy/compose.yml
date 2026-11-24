@@ -1,0 +1,80 @@
+# Backend DressIt sulla VM Oracle: PostgreSQL 16 + API. Caddy (deploy/bootstrap.sh) espone
+# l'API in HTTPS raggiungendo il container "dressit-api" sulla rete Docker condivisa "web".
+# Il database non è raggiungibile da fuori: sta solo sulla rete interna del progetto.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dressit-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dressit
+      POSTGRES_DB: dressit
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?manca il secret POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dressit -d dressit"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [internal]
+
+  api:
+    build: ../apps/api
+    container_name: dressit-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      DATABASE_URL: postgres://dressit:${POSTGRES_PASSWORD}@db:5432/dressit
+      JWT_SECRET: ${JWT_SECRET:?manca il secret JWT_SECRET}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:?manca il secret GEMINI_API_KEY}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-https://lorenzomp7.github.io}
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
+    volumes:
+      - uploads:/app/uploads
+    mem_limit: 1g
+    networks: [internal, web]
+
+  # Backup giornaliero del database e settimanale delle foto su Google Drive, cifrati (deploy/backup).
+  # Parte solo con il profilo "backup", che remote-deploy.sh attiva quando ci sono i secret
+  # BACKUP_FERNET_KEY e RCLONE_DRIVE_TOKEN: senza, il deploy resta com'era.
+  backup:
+    build: ./backup
+    container_name: dressit-backup
+    restart: unless-stopped
+    profiles: [backup]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: dressit
+      PGDATABASE: dressit
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_FERNET_KEY: ${BACKUP_FERNET_KEY:-}
+      RCLONE_DRIVE_TOKEN: ${RCLONE_DRIVE_TOKEN:-}
+      BACKUP_REMOTE: ${BACKUP_REMOTE:-gdrive:DressIt-backup}
+      BACKUP_HOUR: ${BACKUP_HOUR:-3}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    volumes:
+      - uploads:/uploads:ro
+      - backup-state:/state
+    mem_limit: 256m
+    networks: [internal]
+
+volumes:
+  db-data:
+  uploads:
+  backup-state:
+
+networks:
+  internal:
+  web:
+    external: true

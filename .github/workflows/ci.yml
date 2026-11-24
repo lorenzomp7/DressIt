@@ -23,6 +23,18 @@ jobs:
     defaults:
       run:
         working-directory: apps/${{ matrix.app }}
+    # Database usa e getta per i test dell'API che lo richiedono (test/mcp.test.ts).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: dressit
+          POSTGRES_PASSWORD: dressit
+          POSTGRES_DB: dressit_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U dressit -d dressit_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -40,9 +52,32 @@ jobs:
 
       - name: Test
         run: npm test --if-present
+        env:
+          TEST_DATABASE_URL: ${{ matrix.app == 'api' && 'postgres://dressit:dressit@127.0.0.1:5432/dressit_test' || '' }}
 
       - name: Build
         run: npm run build
         env:
           NEXT_PUBLIC_API_URL: https://dressit-api.example.com
           NEXT_TELEMETRY_DISABLED: "1"
+
+  backup:
+    name: backup · dump, cifratura e ripristino
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Costruisce deploy/backup e lo prova contro due Postgres 16 usa e getta, con dati finti
+      # e una cartella locale al posto di Google Drive. Nessun secret richiesto.
+      - name: Test del backup
+        run: bash deploy/backup/test.sh
+
+  apk:
+    name: apk · bozza delle schede delle app analizzate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # APK costruiti nel test con aapt: nessuna app di terzi.
+      - name: Strumenti Android
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq apktool aapt android-sdk-platform-23
+      - name: Test dello script
+        run: bash scripts/apk/test.sh

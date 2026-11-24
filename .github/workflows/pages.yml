@@ -1,0 +1,61 @@
+# Pubblica la PWA (export statico di Next.js) su GitHub Pages: https://lorenzomp7.github.io/DressIt/
+# L'indirizzo dell'API viene da API_HOST oppure da VM_HOST (variabili del repo).
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths: [apps/web/**, .github/workflows/pages.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - id: pages
+        uses: actions/configure-pages@v5
+      - run: npm ci
+      - name: Build
+        env:
+          API_HOST: ${{ vars.API_HOST }}
+          VM_HOST: ${{ vars.VM_HOST }}
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: |
+          if [ -z "$API_HOST" ] && [ -n "$VM_HOST" ]; then API_HOST="dressit.${VM_HOST//./-}.sslip.io"; fi
+          if [ -z "$API_HOST" ]; then echo "::warning::Imposta la variabile VM_HOST (o API_HOST): senza, l'app non trova l'API."; fi
+          export NEXT_PUBLIC_API_URL="${API_HOST:-localhost:4000}"
+          echo "API: $NEXT_PUBLIC_API_URL · base path: '${NEXT_PUBLIC_BASE_PATH}'"
+          npm run build
+          touch out/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

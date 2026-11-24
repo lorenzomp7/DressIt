@@ -27,6 +27,7 @@ AGENTS.md (importato sopra) vale per tutti gli agenti; qui solo ciò che riguard
 ### Skill
 
 - Le 5 procedure indicate in AGENTS.md sono in `.claude/skills/`, collegate al submodule `tools/agent-skills` che l'avvio della sessione scarica in automatico.
+- `.claude/skills/gemini-api-dev` è una copia della skill ufficiale di Google (Apache-2.0, origine in `SOURCE.md`): usala per ogni modifica a `apps/api/src/services/ai.ts`, come dice AGENTS.md.
 
 ### Server MCP
 
