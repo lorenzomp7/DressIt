@@ -1,6 +1,6 @@
 "use client";
 
-import { Shirt } from "lucide-react";
+import { Shirt, UserRound } from "lucide-react";
 import { useState } from "react";
 import { Spinner, useAuth } from "@/components/AuthProvider";
 import { api, ApiError } from "@/lib/api";
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [guestBusy, setGuestBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,6 +29,19 @@ export default function LoginPage() {
       setError(err instanceof ApiError ? err.message : "Qualcosa è andato storto.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function continueAsGuest() {
+    setGuestBusy(true);
+    setError(null);
+    try {
+      const res = await api.guest();
+      signIn(res.token, res.user);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Non è stato possibile entrare come ospite.");
+    } finally {
+      setGuestBusy(false);
     }
   }
 
@@ -73,7 +87,7 @@ export default function LoginPage() {
         {error && <p className="text-sm text-danger">{error}</p>}
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || guestBusy}
           className="flex w-full items-center justify-center rounded-xl bg-accent py-3 font-semibold text-on-accent disabled:opacity-70"
         >
           {busy ? <Spinner className="size-5 text-on-accent" /> : mode === "login" ? "Accedi" : "Crea account"}
@@ -90,6 +104,24 @@ export default function LoginPage() {
       >
         {mode === "login" ? "Non hai un account? Registrati" : "Hai già un account? Accedi"}
       </button>
+
+      <div className="mt-8 flex items-center gap-3 text-xs text-muted" aria-hidden>
+        <span className="h-px flex-1 bg-line" />
+        oppure
+        <span className="h-px flex-1 bg-line" />
+      </div>
+      <button
+        type="button"
+        onClick={continueAsGuest}
+        disabled={busy || guestBusy}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-line py-3 font-semibold disabled:opacity-70"
+      >
+        {guestBusy ? <Spinner className="size-5" /> : <UserRound className="size-5" aria-hidden />}
+        Continua come ospite
+      </button>
+      <p className="mt-2 text-center text-xs text-muted">
+        Senza email: l&apos;armadio è legato a questo dispositivo. Puoi creare un account quando vuoi, senza perdere i capi.
+      </p>
     </div>
   );
 }

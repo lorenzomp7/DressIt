@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, LogOut, ShieldCheck, Sparkles } from "lucide-react";
+import { Camera, LogOut, ShieldCheck, Sparkles, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Spinner, useAuth } from "@/components/AuthProvider";
@@ -45,6 +45,19 @@ export default function WardrobePage() {
           </button>
         </div>
       </header>
+
+      {user?.isGuest && (
+        <Link
+          href="/account"
+          className="mb-4 flex items-center gap-3 rounded-2xl border border-line bg-surface p-4"
+        >
+          <UserRound className="size-6 shrink-0 text-accent" aria-hidden />
+          <div>
+            <p className="font-semibold">Stai usando DressIt come ospite</p>
+            <p className="text-sm text-muted">Crea un account per non perdere l&apos;armadio se esci o cambi telefono.</p>
+          </div>
+        </Link>
+      )}
 
       <Link
         href="/assistant?q=Cosa%20mi%20metto%20oggi%3F"

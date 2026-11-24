@@ -10,6 +10,7 @@ interface AuthState {
   user: User | null;
   loading: boolean;
   signIn: (token: string, user: User) => void;
+  /** Asks for confirmation first when the user is a guest. */
   signOut: () => void;
 }
 
@@ -27,6 +28,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     router.replace("/login");
   }, [router]);
+
+  // A guest has no email or password: signing out means never getting back into this wardrobe.
+  const requestSignOut = useCallback(() => {
+    if (
+      user?.isGuest &&
+      !window.confirm(
+        "Stai usando DressIt come ospite: se esci non potrai più rientrare in questo armadio. " +
+          "Per tenerlo, crea prima un account. Vuoi uscire comunque?",
+      )
+    ) {
+      return;
+    }
+    signOut();
+  }, [user, signOut]);
 
   const signIn = useCallback(
     (token: string, u: User) => {
@@ -51,7 +66,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     api
       .me()
-      .then(({ user }) => setUser(user))
+      .then(({ user, token }) => {
+        if (token) tokenStore.set(token);
+        setUser(user);
+      })
       .catch(() => tokenStore.set(null))
       .finally(() => setLoading(false));
   }, []);
@@ -64,7 +82,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user && isPublic) router.replace("/");
   }, [loading, user, pathname, router]);
 
-  const value = useMemo(() => ({ user, loading, signIn, signOut }), [user, loading, signIn, signOut]);
+  const value = useMemo(
+    () => ({ user, loading, signIn, signOut: requestSignOut }),
+    [user, loading, signIn, requestSignOut],
+  );
   const isPublic = PUBLIC_ROUTES.includes(pathname);
 
   return (

@@ -71,7 +71,9 @@ export async function getStats(): Promise<AdminStats> {
 
 export interface AdminUser {
   id: string;
-  email: string;
+  /** null for guests. */
+  email: string | null;
+  isGuest: boolean;
   displayName: string | null;
   createdAt: string;
   itemCount: number;
@@ -82,14 +84,15 @@ export interface AdminUser {
 export async function listUsers(): Promise<AdminUser[]> {
   const { rows } = await pool.query<{
     id: string;
-    email: string;
+    email: string | null;
+    is_guest: boolean;
     display_name: string | null;
     created_at: Date;
     item_count: string;
     last_item_at: Date | null;
     ai_calls: string;
   }>(
-    `SELECT u.id, u.email, u.display_name, u.created_at,
+    `SELECT u.id, u.email, u.is_guest, u.display_name, u.created_at,
             (SELECT count(*) FROM items i WHERE i.user_id = u.id) AS item_count,
             (SELECT max(created_at) FROM items i WHERE i.user_id = u.id) AS last_item_at,
             (SELECT count(*) FROM ai_events e WHERE e.user_id = u.id) AS ai_calls
@@ -99,6 +102,7 @@ export async function listUsers(): Promise<AdminUser[]> {
   return rows.map((r) => ({
     id: r.id,
     email: r.email,
+    isGuest: r.is_guest,
     displayName: r.display_name,
     createdAt: r.created_at.toISOString(),
     itemCount: Number(r.item_count),
@@ -129,7 +133,8 @@ export async function deleteUser(id: string): Promise<string[] | null> {
 
 export interface AdminItem {
   id: string;
-  ownerEmail: string;
+  /** null for guests. */
+  ownerEmail: string | null;
   imageUrl: string;
   name: string;
   category: string;
@@ -144,7 +149,7 @@ export interface AdminItem {
 export async function listRecentItems(limit: number, userId?: string): Promise<AdminItem[]> {
   const { rows } = await pool.query<{
     id: string;
-    email: string;
+    email: string | null;
     image_url: string;
     name: string;
     category: string;

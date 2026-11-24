@@ -22,9 +22,11 @@ export interface Item {
 
 export interface User {
   id: string;
-  email: string;
+  /** null for guests (signed in with "Continua come ospite"). */
+  email: string | null;
   displayName: string | null;
   isAdmin: boolean;
+  isGuest: boolean;
 }
 
 export interface Weather {
@@ -90,7 +92,9 @@ export interface AdminStats {
 
 export interface AdminUser {
   id: string;
-  email: string;
+  /** null for guests. */
+  email: string | null;
+  isGuest: boolean;
   displayName: string | null;
   createdAt: string;
   itemCount: number;
@@ -100,7 +104,8 @@ export interface AdminUser {
 
 export interface AdminItem {
   id: string;
-  ownerEmail: string;
+  /** null for guests. */
+  ownerEmail: string | null;
   imageUrl: string;
   name: string;
   category: Category;
