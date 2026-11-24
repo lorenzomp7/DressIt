@@ -289,7 +289,7 @@ Dalla radice, esegui `npm run check` per i controlli del progetto e `npm run age
 | Vibetest | Esplorazione e test browser con modello configurato |
 | container-use | Ambienti isolati su un host con Docker |
 | Gemini CLI | Assistente da terminale con autenticazione propria |
-| REA (`rea` in `.mcp.optional.json`) e `scripts/apk/analizza_apk.py` | Analisi delle app di guardaroba concorrenti dai loro APK: schede in [docs/app-analizzate](docs/app-analizzate/README.md) |
+| REA (server MCP `rea` in `.mcp.json`, attivo anche nel cloud; skill `rea`) e `scripts/apk/analizza_apk.py` | Analisi delle app di guardaroba concorrenti dai loro APK: schede in [docs/app-analizzate](docs/app-analizzate/README.md) |
 
 Le verifiche browser in CI usano risposte API simulate; non attestano il
 funzionamento del deploy, delle credenziali Google o delle chiamate AI reali.

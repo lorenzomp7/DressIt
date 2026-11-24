@@ -21,16 +21,20 @@ Niente codice o risorse copiati.
 
 | App | Scheda |
 |---|---|
-| Acloset | da fare |
-| Whering | da fare |
-| Indyx | da fare |
-| Pureple | da fare |
-| Cladwell | da fare |
-| Pronti | da fare |
-| Combyne | da fare |
-| GetWardrobe | da fare |
-| Wardrobe Outfit Planner | da fare |
-| Alta Daily | da fare |
+| Acloset | [scheda](acloset.md) (fonti pubbliche) |
+| Whering | [scheda](whering.md) (fonti pubbliche) |
+| Indyx | [scheda](indyx.md) (fonti pubbliche) |
+| Pureple | [scheda](pureple.md) (fonti pubbliche) |
+| Cladwell | [scheda](cladwell.md) (fonti pubbliche) |
+| Pronti | [scheda](pronti.md) (fonti pubbliche) |
+| Combyne | [scheda](combyne.md) (fonti pubbliche) |
+| GetWardrobe | [scheda](getwardrobe.md) (fonti pubbliche) |
+| Wardrobe Outfit Planner | [scheda](wardrobe-outfit-planner.md) (fonti pubbliche) |
+| Alta Daily | [scheda](alta-daily.md) (fonti pubbliche) |
+
+Le dieci schede sono compilate da **fonti pubbliche** (store, siti, confronti), con la fonte
+per ogni riga; le righe «da APK» si completano con la procedura qui sotto, aggiornando la
+scheda esistente invece di crearne un'altra.
 
 ## Come si fa una scheda (1-2 ore per app, 0 €)
 
@@ -56,9 +60,10 @@ Niente codice o risorse copiati.
 3. **Approfondisci con REA** se la bozza lascia dubbi: per esempio un servizio esterno sospetto, un
    file di modello o un'app Flutter. REA ([morluto/rea](https://github.com/morluto/rea), MIT)
    decodifica il manifest e le risorse (Apktool), elenca classi e librerie (JADX), controlla la firma
-   (`inspect_apk_signature`) e, via `adb`, scarica gli APK dal telefono. Si attiva in locale con
-   `npx rea-agents setup`, oppure con la voce `rea` di `.mcp.optional.json`
-   (famiglie `android,adb,apktool,session`).
+   (`inspect_apk_signature`) e, via `adb`, scarica gli APK dal telefono. È già attivo in ogni
+   sessione Claude Code su questa repo, nel cloud e sul PC: server MCP `rea` in `.mcp.json`
+   (famiglie `android,apktool,artifact,adb,flutter`), con JADX e Apktool installati da Claude
+   (skill `rea`, controllo `node .claude/rea/check.mjs [file.apk]`).
 4. **Scrivi la conclusione** nella scheda: per ogni punto, cosa fa l'app e cosa conviene fare in
    DressIt. Poi aggiorna la tabella qui sopra e la riga DressIt 2 del Piano.
 
