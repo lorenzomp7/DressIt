@@ -56,9 +56,10 @@ Niente codice o risorse copiati.
 3. **Approfondisci con REA** se la bozza lascia dubbi: per esempio un servizio esterno sospetto, un
    file di modello o un'app Flutter. REA ([morluto/rea](https://github.com/morluto/rea), MIT)
    decodifica il manifest e le risorse (Apktool), elenca classi e librerie (JADX), controlla la firma
-   (`inspect_apk_signature`) e, via `adb`, scarica gli APK dal telefono. Si attiva in locale con
-   `npx rea-agents setup`, oppure con la voce `rea` di `.mcp.optional.json`
-   (famiglie `android,adb,apktool,session`).
+   (`inspect_apk_signature`) e, via `adb`, scarica gli APK dal telefono. È già attivo in ogni
+   sessione Claude Code su questa repo, nel cloud e sul PC: server MCP `rea` in `.mcp.json`
+   (famiglie `android,apktool,artifact,adb,flutter`), con JADX e Apktool installati da Claude
+   (skill `rea`, controllo `node .claude/rea/check.mjs [file.apk]`).
 4. **Scrivi la conclusione** nella scheda: per ogni punto, cosa fa l'app e cosa conviene fare in
    DressIt. Poi aggiorna la tabella qui sopra e la riga DressIt 2 del Piano.
 
