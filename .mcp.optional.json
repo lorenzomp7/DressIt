@@ -20,6 +20,17 @@
         "scripts/agents/container-use.sh",
         "stdio"
       ]
+    },
+    "rea": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "rea-agents@6.10.1",
+        "mcp"
+      ],
+      "env": {
+        "REA_MCP_TOOL_FAMILIES": "android,adb,apktool,session"
+      }
     }
   }
 }

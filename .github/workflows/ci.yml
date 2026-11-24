@@ -70,3 +70,14 @@ jobs:
       # e una cartella locale al posto di Google Drive. Nessun secret richiesto.
       - name: Test del backup
         run: bash deploy/backup/test.sh
+
+  apk:
+    name: apk · bozza delle schede delle app analizzate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # APK costruiti nel test con aapt: nessuna app di terzi.
+      - name: Strumenti Android
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq apktool aapt android-sdk-platform-23
+      - name: Test dello script
+        run: bash scripts/apk/test.sh
