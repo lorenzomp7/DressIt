@@ -21,16 +21,20 @@ Niente codice o risorse copiati.
 
 | App | Scheda |
 |---|---|
-| Acloset | da fare |
-| Whering | da fare |
-| Indyx | da fare |
-| Pureple | da fare |
-| Cladwell | da fare |
-| Pronti | da fare |
-| Combyne | da fare |
-| GetWardrobe | da fare |
-| Wardrobe Outfit Planner | da fare |
-| Alta Daily | da fare |
+| Acloset | [scheda](acloset.md) (fonti pubbliche) |
+| Whering | [scheda](whering.md) (fonti pubbliche) |
+| Indyx | [scheda](indyx.md) (fonti pubbliche) |
+| Pureple | [scheda](pureple.md) (fonti pubbliche) |
+| Cladwell | [scheda](cladwell.md) (fonti pubbliche) |
+| Pronti | [scheda](pronti.md) (fonti pubbliche) |
+| Combyne | [scheda](combyne.md) (fonti pubbliche) |
+| GetWardrobe | [scheda](getwardrobe.md) (fonti pubbliche) |
+| Wardrobe Outfit Planner | [scheda](wardrobe-outfit-planner.md) (fonti pubbliche) |
+| Alta Daily | [scheda](alta-daily.md) (fonti pubbliche) |
+
+Le dieci schede sono compilate da **fonti pubbliche** (store, siti, confronti), con la fonte
+per ogni riga; le righe «da APK» si completano con la procedura qui sotto, aggiornando la
+scheda esistente invece di crearne un'altra.
 
 ## Come si fa una scheda (1-2 ore per app, 0 €)
 
